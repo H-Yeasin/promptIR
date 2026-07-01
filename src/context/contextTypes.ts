@@ -1,0 +1,23 @@
+export interface ContextFile {
+	fileName: string;
+	languageId: string;
+	text: string;
+	score: number;
+}
+
+export interface ContextDiagnostic {
+	fileName: string;
+	line: number;
+	column: number;
+	severity: string;
+	message: string;
+	source?: string;
+}
+
+export interface WorkspaceContext {
+	fileName: string;
+	languageId: string;
+	selectedText: string;
+	relatedFiles?: ContextFile[];
+	diagnostics?: ContextDiagnostic[];
+}

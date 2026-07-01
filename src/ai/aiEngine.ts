@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { WorkspaceContext } from './contextGatherer';
-import { describePresetContext, PromptPreset, promptPresets } from './promptPresets';
+import { WorkspaceContext } from '../context/contextGatherer';
+import { describePresetContext, PromptPreset, promptPresets } from '../presets/promptPresets';
 
 export interface PromptProcessingOptions {
 	onFragment?: (fragment: string) => void;

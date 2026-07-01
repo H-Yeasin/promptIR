@@ -1,42 +1,4 @@
-import type { WorkspaceContext } from './contextGatherer';
-
-export type PresetCategory = 'General' | 'Code' | 'Debugging' | 'Specialized';
-
-export type ContextStrategy =
-	| 'promptAware'
-	| 'selectionOrActiveFile'
-	| 'activeFileAndRelatedFiles'
-	| 'diagnosticsFocused'
-	| 'uiComponentFocused'
-	| 'workspaceSummary'
-	| 'securityPerformanceFocused'
-	| 'buildFailureFocused';
-
-export type PromptPresetId =
-	| 'optimize'
-	| 'analyzeProblems'
-	| 'explainFile'
-	| 'refactorSafely'
-	| 'askFollowUpQuestions'
-	| 'reviewBugs'
-	| 'improveUiUx'
-	| 'summarizeWorkspace'
-	| 'securityPerformancePass'
-	| 'diagnoseBuildFailure'
-	| 'implementationPlan';
-
-export interface PromptPreset {
-	id: PromptPresetId;
-	category: PresetCategory;
-	label: string;
-	description: string;
-	actionLabel: string;
-	placeholderText: string;
-	contextStrategy: ContextStrategy;
-	requiresPrompt: boolean;
-	defaultGoal: string;
-	instruction: string;
-}
+import type { PromptPreset } from './presetTypes';
 
 export const promptPresets: PromptPreset[] = [
 	{
@@ -215,32 +177,3 @@ export const promptPresets: PromptPreset[] = [
 		].join(' ')
 	}
 ];
-
-export type IntentPreset = PromptPreset;
-export const AVAILABLE_PRESETS = promptPresets;
-
-export function getPromptPreset(id: string | undefined): PromptPreset {
-	return promptPresets.find(preset => preset.id === id) ?? promptPresets[0];
-}
-
-export function getPromptForPreset(rawPrompt: string, preset: PromptPreset): string {
-	const trimmedPrompt = rawPrompt.trim();
-
-	if (trimmedPrompt) {
-		return trimmedPrompt;
-	}
-
-	return preset.defaultGoal;
-}
-
-export function describePresetContext(context: WorkspaceContext, preset: PromptPreset): string {
-	const relatedCount = context.relatedFiles?.length ?? 0;
-	const diagnosticCount = context.diagnostics?.length ?? 0;
-
-	return [
-		`Selected preset: ${preset.label}`,
-		`Context strategy: ${preset.contextStrategy}`,
-		`Retrieved files: ${relatedCount}`,
-		`Diagnostics: ${diagnosticCount}`
-	].join('\n');
-}

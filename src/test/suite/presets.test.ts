@@ -3,7 +3,7 @@ import {
 	AVAILABLE_PRESETS,
 	getPromptForPreset,
 	getPromptPreset
-} from '../../promptPresets';
+} from '../../presets/promptPresets';
 
 suite('PromptIR Presets', () => {
 	test('all presets have unique ids', () => {
