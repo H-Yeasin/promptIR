@@ -4,6 +4,7 @@ import {
 	getPromptForPreset,
 	getPromptPreset
 } from '../../presets/promptPresets';
+import { composeFollowUpRefinementPrompt } from '../../webviews/composer/followUpRefinement';
 
 suite('PromptIR Presets', () => {
 	test('all presets have unique ids', () => {
@@ -27,5 +28,19 @@ suite('PromptIR Presets', () => {
 			assert.ok(fallbackGoal.length >= 20, `${preset.id} should have a descriptive fallback goal.`);
 			assert.notStrictEqual(fallbackGoal, preset.label);
 		}
+	});
+
+	test('follow-up refinement prompt includes original goal and answered questions', () => {
+		const prompt = composeFollowUpRefinementPrompt('Add login with OAuth.', [
+			{ question: 'Which provider?', answer: 'GitHub first.' },
+			{ question: 'Should tests be included?', answer: 'Yes, unit and integration tests.' },
+			{ question: 'Empty answer?', answer: '' }
+		]);
+
+		assert.match(prompt, /Original goal:\nAdd login with OAuth\./);
+		assert.match(prompt, /Question: Which provider\?/);
+		assert.match(prompt, /Answer: GitHub first\./);
+		assert.match(prompt, /Question: Should tests be included\?/);
+		assert.doesNotMatch(prompt, /Empty answer/);
 	});
 });

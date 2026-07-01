@@ -13,7 +13,13 @@ export function registerOptimizeCommand(): vscode.Disposable {
 			return;
 		}
 
-		const composerResult = await showPromptComposer(workspaceContext.fileName);
+		const composerResult = await showPromptComposer(workspaceContext.fileName, {
+			generateFollowUpQuestions: prompt => runPresetPipeline(
+				prompt,
+				workspaceContext,
+				getPromptPreset('askFollowUpQuestions')
+			)
+		});
 
 		if (!composerResult) {
 			return;
