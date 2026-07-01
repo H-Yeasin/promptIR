@@ -11,7 +11,7 @@
             stroke-linejoin="round" />
     </g>
 
-    <rect x="214.0" y="180" width="50" height="350" rx="6"
+    <rect x="214.0" y="180" width="70" height="350" rx="6"
           fill="#e2924b" transform="rotate(14 520.0 310)" />
 
     <path d="M 116,142 C 129,129 150,129 163,142 L 271,250 C 284,263 284,285 271,298 L 163,406 C 150,419 129,419 116,406 C 103,393 103,372 116,359 L 200,275 L 116,191 C 103,178 103,155 116,142 Z" fill="#F5B87A" transform="translate(158,0)" />
