@@ -49,12 +49,35 @@ export async function getPromptAwareWorkspaceContext(
 	baseContext: WorkspaceContext,
 	contextStrategy: ContextStrategy = 'promptAware'
 ): Promise<WorkspaceContext> {
+	if (contextStrategy === 'workspaceSummary') {
+		const relatedFiles = await findWorkspaceSummaryFiles(rawPrompt, baseContext.fileName);
+		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
+
+		return {
+			...baseContext,
+			relatedFiles,
+			diagnostics
+		};
+	}
+
+	if (contextStrategy === 'diagnosticsFocused') {
+		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, [], contextStrategy);
+		const relatedFiles = await readDiagnosticFiles(diagnostics, baseContext.fileName);
+		const prioritizedDiagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
+
+		return {
+			...baseContext,
+			relatedFiles,
+			diagnostics: prioritizedDiagnostics
+		};
+	}
+
 	const relatedFiles = await findRelevantWorkspaceFiles(
 		getContextSearchText(rawPrompt, baseContext, contextStrategy),
 		baseContext.fileName,
 		contextStrategy
 	);
-	const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles);
+	const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
 
 	return {
 		...baseContext,
@@ -120,12 +143,90 @@ async function findRelevantWorkspaceFiles(
 	return relatedFiles;
 }
 
+async function findWorkspaceSummaryFiles(rawPrompt: string, activeFileName: string): Promise<ContextFile[]> {
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+
+	if (!workspaceFolders?.length) {
+		return [];
+	}
+
+	const files = await vscode.workspace.findFiles(
+		'{README.md,package.json,pubspec.yaml,pyproject.toml,Cargo.toml,go.mod,composer.json,requirements.txt,tsconfig.json,vite.config.*,next.config.*,src/main.*,src/index.*,src/App.*,src/app.*,lib/main.dart}',
+		'**/{node_modules,.git,dist,build,out,coverage,.dart_tool,ios,android,windows,macos,linux}/**',
+		80
+	);
+	const keywords = extractKeywords(rawPrompt);
+	const ranked = files
+		.map(uri => ({
+			uri,
+			score: scoreSummaryFile(uri, keywords, activeFileName)
+		}))
+		.sort((left, right) => right.score - left.score)
+		.slice(0, 8);
+
+	return readContextFiles(ranked);
+}
+
+async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[]): Promise<ContextFile[]> {
+	const relatedFiles: ContextFile[] = [];
+
+	for (const candidate of candidates) {
+		try {
+			const document = await vscode.workspace.openTextDocument(candidate.uri);
+			const text = document.getText();
+
+			relatedFiles.push({
+				fileName: document.fileName,
+				languageId: document.languageId,
+				text: text.slice(0, 6000),
+				score: candidate.score
+			});
+		} catch {
+			// Ignore files VS Code cannot open as text.
+		}
+	}
+
+	return relatedFiles;
+}
+
+async function readDiagnosticFiles(diagnostics: ContextDiagnostic[], activeFileName: string): Promise<ContextFile[]> {
+	const fileNames = Array.from(new Set(
+		diagnostics
+			.map(diagnostic => diagnostic.fileName)
+			.filter(fileName => fileName !== activeFileName)
+	)).slice(0, 5);
+
+	const relatedFiles: ContextFile[] = [];
+
+	for (const fileName of fileNames) {
+		try {
+			const document = await vscode.workspace.openTextDocument(vscode.Uri.file(fileName));
+			const text = document.getText();
+
+			relatedFiles.push({
+				fileName: document.fileName,
+				languageId: document.languageId,
+				text: text.slice(0, 6000),
+				score: 10
+			});
+		} catch {
+			// Ignore diagnostic files VS Code cannot open as text.
+		}
+	}
+
+	return relatedFiles;
+}
+
 function getContextSearchText(
 	rawPrompt: string,
 	baseContext: WorkspaceContext,
 	contextStrategy: ContextStrategy
 ): string {
-	if (contextStrategy === 'activeFileAndRelatedFiles') {
+	if (
+		contextStrategy === 'activeFileAndRelatedFiles'
+		|| contextStrategy === 'diagnosticsFocused'
+		|| contextStrategy === 'uiComponentFocused'
+	) {
 		return [
 			rawPrompt,
 			vscode.workspace.asRelativePath(baseContext.fileName),
@@ -171,10 +272,44 @@ function scoreFile(uri: vscode.Uri, keywords: string[], activeFileName: string):
 		score += 1;
 	}
 
+	if (/\b(style|styles|theme|themes|css|scss|tailwind|layout|layouts|design|ui|ux)\b/.test(normalizedPath)) {
+		score += 1;
+	}
+
 	return score;
 }
 
-function collectRelevantDiagnostics(activeFileName: string, relatedFiles: ContextFile[]): ContextDiagnostic[] {
+function scoreSummaryFile(uri: vscode.Uri, keywords: string[], activeFileName: string): number {
+	const relativePath = vscode.workspace.asRelativePath(uri).toLowerCase();
+	const normalizedPath = relativePath.replace(/[_\-./\\]+/g, ' ');
+	let score = uri.fsPath === activeFileName ? 8 : 0;
+
+	if (/^(readme\.md|package\.json|pubspec\.yaml|pyproject\.toml|cargo\.toml|go\.mod|composer\.json|requirements\.txt)$/.test(relativePath)) {
+		score += 10;
+	}
+
+	if (/(^|\/)(src|lib)\/(main|index|app)\./.test(relativePath)) {
+		score += 7;
+	}
+
+	if (/\b(config|router|route|routes|layout|theme|provider|store)\b/.test(normalizedPath)) {
+		score += 3;
+	}
+
+	for (const keyword of keywords) {
+		if (relativePath.includes(keyword)) {
+			score += 3;
+		}
+	}
+
+	return score;
+}
+
+function collectRelevantDiagnostics(
+	activeFileName: string,
+	relatedFiles: ContextFile[],
+	contextStrategy: ContextStrategy
+): ContextDiagnostic[] {
 	const relatedFileNames = new Set(relatedFiles.map(file => file.fileName));
 	const allDiagnostics = vscode.languages.getDiagnostics();
 
@@ -182,7 +317,7 @@ function collectRelevantDiagnostics(activeFileName: string, relatedFiles: Contex
 		.flatMap(([uri, diagnostics]) => diagnostics.map(diagnostic => ({
 			uri,
 			diagnostic,
-			priority: getDiagnosticPriority(uri.fsPath, activeFileName, relatedFileNames)
+			priority: getDiagnosticPriority(uri.fsPath, activeFileName, relatedFileNames, contextStrategy)
 		})))
 		.filter(item => item.priority > 0)
 		.sort((left, right) => {
@@ -203,13 +338,18 @@ function collectRelevantDiagnostics(activeFileName: string, relatedFiles: Contex
 		}));
 }
 
-function getDiagnosticPriority(fileName: string, activeFileName: string, relatedFileNames: Set<string>): number {
+function getDiagnosticPriority(
+	fileName: string,
+	activeFileName: string,
+	relatedFileNames: Set<string>,
+	contextStrategy: ContextStrategy
+): number {
 	if (fileName === activeFileName) {
-		return 3;
+		return contextStrategy === 'diagnosticsFocused' ? 4 : 3;
 	}
 
 	if (relatedFileNames.has(fileName)) {
-		return 2;
+		return contextStrategy === 'diagnosticsFocused' ? 3 : 2;
 	}
 
 	return 1;

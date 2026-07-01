@@ -9,12 +9,16 @@ Use **PromptIR: Optimize Prompt with Context** to open the Composer.
 The Composer includes the first batch of one-click intent presets:
 
 - **Optimize Prompt**: rewrite a rough goal into a richer agent prompt.
+- **Analyze Current Problems**: use VS Code Problems diagnostics and related files to prepare a focused debugging/fix prompt.
 - **Explain This File**: explain the active file or selected code, including responsibilities, dependencies, and risks.
 - **Refactor Safely**: prepare a behavior-preserving cleanup prompt with testing expectations.
+- **Ask Follow-Up Questions**: produce 3-5 clarifying questions instead of a full agent prompt.
 - **Review For Bugs**: prepare a code-review style prompt focused on correctness, edge cases, regressions, security, and missing tests.
+- **Improve UI/UX**: gather component, page, style, and theme context for polished user-facing improvements.
+- **Summarize Workspace Context**: create a compact project map that can be pasted into an external agent.
 - **Prepare Implementation Plan**: create a planning-only prompt that asks the agent not to edit code yet.
 
-More specialized presets such as diagnostics analysis, UI/UX improvement, workspace summaries, build-failure diagnosis, and security/performance passes are planned as follow-up phases.
+More specialized presets such as build-failure diagnosis and security/performance passes are planned as follow-up phases.
 
 ## Requirements
 

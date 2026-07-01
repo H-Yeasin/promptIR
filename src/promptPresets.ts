@@ -1,8 +1,23 @@
 import type { WorkspaceContext } from './contextGatherer';
 
-export type ContextStrategy = 'promptAware' | 'selectionOrActiveFile' | 'activeFileAndRelatedFiles';
+export type ContextStrategy =
+	| 'promptAware'
+	| 'selectionOrActiveFile'
+	| 'activeFileAndRelatedFiles'
+	| 'diagnosticsFocused'
+	| 'uiComponentFocused'
+	| 'workspaceSummary';
 
-export type PromptPresetId = 'optimize' | 'explainFile' | 'refactorSafely' | 'reviewBugs' | 'implementationPlan';
+export type PromptPresetId =
+	| 'optimize'
+	| 'analyzeProblems'
+	| 'explainFile'
+	| 'refactorSafely'
+	| 'askFollowUpQuestions'
+	| 'reviewBugs'
+	| 'improveUiUx'
+	| 'summarizeWorkspace'
+	| 'implementationPlan';
 
 export interface PromptPreset {
 	id: PromptPresetId;
@@ -29,6 +44,21 @@ export const promptPresets: PromptPreset[] = [
 		instruction: [
 			'Transform the raw developer goal into a highly descriptive, step-by-step prompt for an AI coding agent.',
 			'Preserve the user intent, use the workspace context to make the prompt specific, and include verification steps when useful.'
+		].join(' ')
+	},
+	{
+		id: 'analyzeProblems',
+		label: 'Analyze Current Problems',
+		description: 'Use VS Code diagnostics to prepare a focused fix prompt.',
+		actionLabel: 'Analyze Problems',
+		placeholder: 'Optional: add recent changes, failing behavior, or constraints the agent should respect while fixing diagnostics.',
+		contextStrategy: 'diagnosticsFocused',
+		requiresPrompt: false,
+		defaultGoal: 'Investigate and fix the current VS Code Problems diagnostics safely.',
+		instruction: [
+			'Create a focused debugging and fix prompt for an AI coding agent.',
+			'The prompt should prioritize current VS Code diagnostics, active file context, files referenced by diagnostics, likely root causes, safe fix order, and verification steps.',
+			'It should tell the agent to make scoped changes, avoid unrelated cleanup, and explain if any diagnostic appears stale or caused by generated/dependency files.'
 		].join(' ')
 	},
 	{
@@ -62,6 +92,21 @@ export const promptPresets: PromptPreset[] = [
 		].join(' ')
 	},
 	{
+		id: 'askFollowUpQuestions',
+		label: 'Ask Follow-Up Questions',
+		description: 'Generate 3-5 clarifying questions instead of a full prompt.',
+		actionLabel: 'Ask Questions',
+		placeholder: 'Describe the rough or vague goal. PromptIR will turn it into practical clarifying questions.',
+		contextStrategy: 'selectionOrActiveFile',
+		requiresPrompt: false,
+		defaultGoal: 'Ask clarifying questions before creating an agent prompt.',
+		instruction: [
+			'Create only 3-5 concise clarifying questions for the user before a coding agent prompt is written.',
+			'The questions should resolve ambiguity about goal, scope, constraints, target files, expected behavior, and verification.',
+			'Do not produce an implementation prompt, plan, code, or answer. Return only the questions.'
+		].join(' ')
+	},
+	{
 		id: 'reviewBugs',
 		label: 'Review For Bugs',
 		description: 'Generate a code-review prompt for correctness and regressions.',
@@ -74,6 +119,36 @@ export const promptPresets: PromptPreset[] = [
 			'Create a code-review style prompt.',
 			'The prompt should ask the agent to prioritize correctness bugs, edge cases, regressions, security issues, bad async/state handling, and missing tests.',
 			'It should request findings first with file/line references when possible, followed by concise fix suggestions.'
+		].join(' ')
+	},
+	{
+		id: 'improveUiUx',
+		label: 'Improve UI/UX',
+		description: 'Gather component, page, style, and theme context.',
+		actionLabel: 'Prepare UI/UX Prompt',
+		placeholder: 'Optional: describe the screen, component, user flow, or design direction you want improved.',
+		contextStrategy: 'uiComponentFocused',
+		requiresPrompt: false,
+		defaultGoal: 'Improve the UI and UX of the active component or screen.',
+		instruction: [
+			'Create a UI/UX improvement prompt for an AI coding agent.',
+			'The prompt should ask for polished visual hierarchy, spacing, accessibility, responsive behavior, interaction states, loading/empty/error states, and consistency with existing component/theme patterns.',
+			'It should tell the agent to inspect relevant component, page, style, and theme files, keep changes scoped to the user-facing experience, and verify on realistic viewport sizes.'
+		].join(' ')
+	},
+	{
+		id: 'summarizeWorkspace',
+		label: 'Summarize Workspace Context',
+		description: 'Create a compact project map for external agents.',
+		actionLabel: 'Summarize Workspace',
+		placeholder: 'Optional: mention the feature area, folder, or technology the project map should emphasize.',
+		contextStrategy: 'workspaceSummary',
+		requiresPrompt: false,
+		defaultGoal: 'Summarize this workspace into a compact project map.',
+		instruction: [
+			'Create a compact workspace-context prompt for an external AI coding agent.',
+			'The prompt should summarize project purpose, likely tech stack, important directories/files, architecture signals, existing conventions, risks, and what context to inspect next.',
+			'It should avoid asking the agent to edit code and should avoid dumping long file contents.'
 		].join(' ')
 	},
 	{
