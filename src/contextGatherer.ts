@@ -49,6 +49,22 @@ export async function getPromptAwareWorkspaceContext(
 	baseContext: WorkspaceContext,
 	contextStrategy: ContextStrategy = 'promptAware'
 ): Promise<WorkspaceContext> {
+	if (contextStrategy === 'buildFailureFocused') {
+		const diagnosticFiles = await readDiagnosticFiles(
+			collectRelevantDiagnostics(baseContext.fileName, [], contextStrategy),
+			baseContext.fileName
+		);
+		const summaryFiles = await findWorkspaceSummaryFiles(rawPrompt, baseContext.fileName, 4);
+		const relatedFiles = mergeContextFiles([...diagnosticFiles, ...summaryFiles]);
+		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
+
+		return {
+			...baseContext,
+			relatedFiles,
+			diagnostics
+		};
+	}
+
 	if (contextStrategy === 'workspaceSummary') {
 		const relatedFiles = await findWorkspaceSummaryFiles(rawPrompt, baseContext.fileName);
 		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
@@ -143,7 +159,11 @@ async function findRelevantWorkspaceFiles(
 	return relatedFiles;
 }
 
-async function findWorkspaceSummaryFiles(rawPrompt: string, activeFileName: string): Promise<ContextFile[]> {
+async function findWorkspaceSummaryFiles(
+	rawPrompt: string,
+	activeFileName: string,
+	limit = 8
+): Promise<ContextFile[]> {
 	const workspaceFolders = vscode.workspace.workspaceFolders;
 
 	if (!workspaceFolders?.length) {
@@ -162,9 +182,25 @@ async function findWorkspaceSummaryFiles(rawPrompt: string, activeFileName: stri
 			score: scoreSummaryFile(uri, keywords, activeFileName)
 		}))
 		.sort((left, right) => right.score - left.score)
-		.slice(0, 8);
+		.slice(0, limit);
 
 	return readContextFiles(ranked);
+}
+
+function mergeContextFiles(files: ContextFile[]): ContextFile[] {
+	const byName = new Map<string, ContextFile>();
+
+	for (const file of files) {
+		const existing = byName.get(file.fileName);
+
+		if (!existing || file.score > existing.score) {
+			byName.set(file.fileName, file);
+		}
+	}
+
+	return Array.from(byName.values())
+		.sort((left, right) => right.score - left.score)
+		.slice(0, 8);
 }
 
 async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[]): Promise<ContextFile[]> {
@@ -226,6 +262,8 @@ function getContextSearchText(
 		contextStrategy === 'activeFileAndRelatedFiles'
 		|| contextStrategy === 'diagnosticsFocused'
 		|| contextStrategy === 'uiComponentFocused'
+		|| contextStrategy === 'securityPerformanceFocused'
+		|| contextStrategy === 'buildFailureFocused'
 	) {
 		return [
 			rawPrompt,
@@ -273,6 +311,14 @@ function scoreFile(uri: vscode.Uri, keywords: string[], activeFileName: string):
 	}
 
 	if (/\b(style|styles|theme|themes|css|scss|tailwind|layout|layouts|design|ui|ux)\b/.test(normalizedPath)) {
+		score += 1;
+	}
+
+	if (/\b(auth|session|token|secret|credential|password|permission|policy|guard|middleware|api|database|db|query|cache|worker|queue|async|stream|upload|download|file|network|crypto|security|performance|perf)\b/.test(normalizedPath)) {
+		score += 1;
+	}
+
+	if (/\b(test|tests|spec|benchmark|bench)\b/.test(normalizedPath)) {
 		score += 1;
 	}
 

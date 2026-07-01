@@ -11,3 +11,5 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Added Ask Follow-Up Questions for producing clarifying questions before generating a full prompt.
 - Added Improve UI/UX for component, page, style, and theme-focused prompt generation.
 - Added Summarize Workspace Context for compact project-map prompt generation.
+- Added Security/Performance Pass for risk-focused prompt generation.
+- Added Diagnose Build Failure for pasted terminal/build/test output plus diagnostics.

@@ -16,9 +16,11 @@ The Composer includes the first batch of one-click intent presets:
 - **Review For Bugs**: prepare a code-review style prompt focused on correctness, edge cases, regressions, security, and missing tests.
 - **Improve UI/UX**: gather component, page, style, and theme context for polished user-facing improvements.
 - **Summarize Workspace Context**: create a compact project map that can be pasted into an external agent.
+- **Security/Performance Pass**: prepare a risk-focused review prompt for unsafe inputs, auth, async behavior, expensive paths, and missing tests.
+- **Diagnose Build Failure**: combine pasted terminal/build/test output with diagnostics and related files.
 - **Prepare Implementation Plan**: create a planning-only prompt that asks the agent not to edit code yet.
 
-More specialized presets such as build-failure diagnosis and security/performance passes are planned as follow-up phases.
+Automatic terminal capture is planned for a later version. For now, paste build or test output into the Composer when using **Diagnose Build Failure**.
 
 ## Requirements
 

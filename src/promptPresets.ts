@@ -6,7 +6,9 @@ export type ContextStrategy =
 	| 'activeFileAndRelatedFiles'
 	| 'diagnosticsFocused'
 	| 'uiComponentFocused'
-	| 'workspaceSummary';
+	| 'workspaceSummary'
+	| 'securityPerformanceFocused'
+	| 'buildFailureFocused';
 
 export type PromptPresetId =
 	| 'optimize'
@@ -17,6 +19,8 @@ export type PromptPresetId =
 	| 'reviewBugs'
 	| 'improveUiUx'
 	| 'summarizeWorkspace'
+	| 'securityPerformancePass'
+	| 'diagnoseBuildFailure'
 	| 'implementationPlan';
 
 export interface PromptPreset {
@@ -149,6 +153,36 @@ export const promptPresets: PromptPreset[] = [
 			'Create a compact workspace-context prompt for an external AI coding agent.',
 			'The prompt should summarize project purpose, likely tech stack, important directories/files, architecture signals, existing conventions, risks, and what context to inspect next.',
 			'It should avoid asking the agent to edit code and should avoid dumping long file contents.'
+		].join(' ')
+	},
+	{
+		id: 'securityPerformancePass',
+		label: 'Security/Performance Pass',
+		description: 'Look for risky code paths and inefficient behavior.',
+		actionLabel: 'Prepare Risk Prompt',
+		placeholder: 'Optional: describe the request flow, API, screen, or code path that should get the risk/performance review.',
+		contextStrategy: 'securityPerformanceFocused',
+		requiresPrompt: false,
+		defaultGoal: 'Review this code for security and performance risks.',
+		instruction: [
+			'Create a security and performance review prompt for an AI coding agent.',
+			'The prompt should ask the agent to inspect unsafe input handling, auth/session risks, secret handling, database/query risks, network/file access, expensive loops, bad async handling, memory leaks, caching issues, and missing tests.',
+			'It should request prioritized findings first, then small scoped fixes with verification steps. It should avoid speculative rewrites.'
+		].join(' ')
+	},
+	{
+		id: 'diagnoseBuildFailure',
+		label: 'Diagnose Build Failure',
+		description: 'Combine pasted build output with diagnostics and related files.',
+		actionLabel: 'Diagnose Build',
+		placeholder: 'Paste terminal/build/test output here. You can also add what command failed and what changed recently.',
+		contextStrategy: 'buildFailureFocused',
+		requiresPrompt: true,
+		defaultGoal: '',
+		instruction: [
+			'Create a focused build-failure debugging prompt for an AI coding agent.',
+			'The raw goal may contain terminal, build, compiler, or test output. The prompt should preserve the important errors, connect them to diagnostics and relevant files, identify likely root causes, and propose a safe investigation/fix order.',
+			'It should tell the agent to avoid unrelated cleanup, verify by rerunning the failing command when possible, and report if output appears truncated or missing the root error.'
 		].join(' ')
 	},
 	{
