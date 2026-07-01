@@ -3,9 +3,10 @@ import { promptPresets } from '../../presets/promptPresets';
 import { escapeHtml } from '../../utils/escape';
 import { getNonce } from '../../utils/nonce';
 
-export function getComposerHtml(webview: vscode.Webview, fileName: string): string {
+export function getComposerHtml(webview: vscode.Webview, fileName: string, mediaUri: vscode.Uri): string {
 	const nonce = getNonce();
 	const escapedFileName = escapeHtml(fileName);
+	const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaUri, 'promptir-logo.svg'));
 	const presetsJson = JSON.stringify(promptPresets.map(preset => ({
 		id: preset.id,
 		category: preset.category,
@@ -20,7 +21,7 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>PromptIR Composer</title>
 	<style>
@@ -43,8 +44,22 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 		}
 
 		header {
+			display: flex;
+			gap: 12px;
+			align-items: center;
+		}
+
+		.logo {
+			width: 42px;
+			height: 42px;
+			flex: 0 0 auto;
+			border-radius: 10px;
+		}
+
+		.header-copy {
 			display: grid;
 			gap: 6px;
+			min-width: 0;
 		}
 
 		h1 {
@@ -194,6 +209,79 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 			color: var(--vscode-errorForeground);
 		}
 
+		.result-panel {
+			display: none;
+			gap: 8px;
+			padding: 12px;
+			border: 1px solid var(--vscode-input-border);
+			border-radius: 6px;
+			background: var(--vscode-editor-inactiveSelectionBackground);
+		}
+
+		.result-panel.visible {
+			display: grid;
+		}
+
+		.result-heading {
+			margin: 0;
+			font-size: 14px;
+			font-weight: 600;
+		}
+
+		.result-header {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.result-controls {
+			display: flex;
+			gap: 6px;
+			align-items: center;
+		}
+
+		.result-mode[aria-pressed="true"] {
+			color: var(--vscode-button-foreground);
+			background: var(--vscode-button-background);
+		}
+
+		.result-output {
+			min-height: 260px;
+			max-height: 520px;
+			overflow: auto;
+			white-space: pre-wrap;
+			overflow-wrap: anywhere;
+		}
+
+		.result-preview {
+			box-sizing: border-box;
+			min-height: 260px;
+			max-height: 520px;
+			overflow: auto;
+			white-space: pre-wrap;
+			overflow-wrap: anywhere;
+			padding: 12px;
+			border: 1px solid var(--vscode-input-border);
+			border-radius: 6px;
+			color: var(--vscode-input-foreground);
+			background: var(--vscode-input-background);
+			font-family: var(--vscode-editor-font-family);
+			font-size: 13px;
+			line-height: 1.5;
+		}
+
+		.result-preview code {
+			padding: 1px 3px;
+			border-radius: 3px;
+			background: var(--vscode-textCodeBlock-background);
+			font-family: var(--vscode-editor-font-family);
+		}
+
+		.hidden {
+			display: none;
+		}
+
 		.actions {
 			display: flex;
 			gap: 8px;
@@ -239,8 +327,11 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 <body>
 	<main>
 		<header>
-			<h1>PromptIR Composer</h1>
-			<div class="context">Using active context from ${escapedFileName}</div>
+			<img class="logo" src="${logoUri}" alt="PromptIR logo">
+			<div class="header-copy">
+				<h1>PromptIR Composer</h1>
+				<div class="context">Using active context from ${escapedFileName}</div>
+			</div>
 		</header>
 		<div class="presets" id="presets" aria-label="Prompt intent presets"></div>
 		<div class="selected-preset" id="selectedPreset"></div>
@@ -248,6 +339,18 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 		<section class="follow-up-panel" id="followUpPanel" aria-live="polite">
 			<h2 class="follow-up-heading">Answer Follow-Up Questions</h2>
 			<div class="follow-up-list" id="followUpList"></div>
+		</section>
+		<section class="result-panel" id="resultPanel" aria-live="polite">
+			<div class="result-header">
+				<h2 class="result-heading">Generated Prompt</h2>
+				<div class="result-controls">
+					<button class="secondary result-mode" id="previewResult" type="button" aria-pressed="true">Preview</button>
+					<button class="secondary result-mode" id="editResult" type="button" aria-pressed="false">Edit</button>
+					<button class="secondary" id="copyResult" type="button">Copy Edited Prompt</button>
+				</div>
+			</div>
+			<textarea class="result-output" id="resultOutput" spellcheck="false" placeholder="Generated prompt will appear here."></textarea>
+			<div class="result-preview hidden" id="resultPreview"></div>
 		</section>
 		<div class="actions">
 			<div class="hint" id="hint">Ctrl+Enter to generate</div>
@@ -263,12 +366,19 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 		let followUpQuestions = [];
 		let originalFollowUpPrompt = '';
 		let isGeneratingQuestions = false;
+		let isGeneratingPrompt = false;
 
 		const presetsContainer = document.getElementById('presets');
 		const selectedPresetText = document.getElementById('selectedPreset');
 		const promptInput = document.getElementById('prompt');
 		const followUpPanel = document.getElementById('followUpPanel');
 		const followUpList = document.getElementById('followUpList');
+		const resultPanel = document.getElementById('resultPanel');
+		const resultOutput = document.getElementById('resultOutput');
+		const resultPreview = document.getElementById('resultPreview');
+		const previewResultButton = document.getElementById('previewResult');
+		const editResultButton = document.getElementById('editResult');
+		const copyResultButton = document.getElementById('copyResult');
 		const generateButton = document.getElementById('generate');
 		const cancelButton = document.getElementById('cancel');
 		const hint = document.getElementById('hint');
@@ -332,6 +442,10 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 		}
 
 		function getGenerateLabel() {
+			if (isGeneratingPrompt) {
+				return 'Generating...';
+			}
+
 			if (isGeneratingQuestions) {
 				return 'Asking...';
 			}
@@ -395,6 +509,44 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 			}));
 		}
 
+		function escapeMarkdownHtml(text) {
+			return text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+		}
+
+		function renderMarkdownPreview(text) {
+			const escaped = escapeMarkdownHtml(text);
+			const inlineCodePattern = String.fromCharCode(96) + '([^' + String.fromCharCode(96) + ']+)' + String.fromCharCode(96);
+
+			return escaped
+				.replace(new RegExp(inlineCodePattern, 'g'), '<code>$1</code>')
+				.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>')
+				.replace(/__([^_]+)__/g, '<strong>$1</strong>')
+				.replace(/\\*([^*\\n]+)\\*/g, '<em>$1</em>')
+				.replace(/_([^_\\n]+)_/g, '<em>$1</em>');
+		}
+
+		function updateResultPreview() {
+			resultPreview.innerHTML = renderMarkdownPreview(resultOutput.value);
+		}
+
+		function setResultMode(mode) {
+			const isPreview = mode === 'preview';
+
+			if (isPreview) {
+				updateResultPreview();
+			}
+
+			resultPreview.classList.toggle('hidden', !isPreview);
+			resultOutput.classList.toggle('hidden', isPreview);
+			previewResultButton.setAttribute('aria-pressed', String(isPreview));
+			editResultButton.setAttribute('aria-pressed', String(!isPreview));
+		}
+
 		function generate() {
 			const prompt = promptInput.value.trim();
 
@@ -416,6 +568,8 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 				originalFollowUpPrompt = prompt;
 				isGeneratingQuestions = true;
 				generateButton.disabled = true;
+				resultPanel.classList.remove('visible');
+				resultOutput.value = '';
 				updateSelectedPreset();
 				setStatus('Generating follow-up questions...', false);
 				vscode.postMessage({ type: 'generateFollowUpQuestions', prompt });
@@ -451,9 +605,79 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string): stri
 				setStatus(message.message || 'Unable to generate follow-up questions.', true);
 				updateSelectedPreset();
 			}
+
+			if (message?.type === 'generationStarted') {
+				isGeneratingPrompt = true;
+				generateButton.disabled = true;
+				copyResultButton.disabled = true;
+				resultOutput.value = '';
+				resultOutput.readOnly = true;
+				updateResultPreview();
+				setResultMode('edit');
+				resultPanel.classList.add('visible');
+				setStatus('Generating prompt...', false);
+				updateSelectedPreset();
+				return;
+			}
+
+			if (message?.type === 'generatedPromptFragment' && typeof message.fragment === 'string') {
+				resultOutput.value += message.fragment;
+				updateResultPreview();
+				resultOutput.scrollTop = resultOutput.scrollHeight;
+				return;
+			}
+
+			if (message?.type === 'generatedPromptComplete' && typeof message.prompt === 'string') {
+				isGeneratingPrompt = false;
+				generateButton.disabled = false;
+				copyResultButton.disabled = false;
+				resultOutput.readOnly = false;
+				resultOutput.value = message.prompt;
+				updateResultPreview();
+				setResultMode('preview');
+				resultPanel.classList.add('visible');
+				setStatus('Generated prompt copied to clipboard.', false);
+				updateSelectedPreset();
+				return;
+			}
+
+			if (message?.type === 'generatedPromptError') {
+				isGeneratingPrompt = false;
+				generateButton.disabled = false;
+				copyResultButton.disabled = false;
+				resultOutput.readOnly = false;
+				setStatus(message.message || 'Unable to generate prompt.', true);
+				updateSelectedPreset();
+				return;
+			}
+
+			if (message?.type === 'generatedPromptCopied') {
+				setStatus('Edited prompt copied to clipboard.', false);
+				return;
+			}
+
+			if (message?.type === 'generatedPromptCopyError') {
+				setStatus(message.message || 'Unable to copy edited prompt.', true);
+			}
 		});
 
 		generateButton.addEventListener('click', generate);
+		previewResultButton.addEventListener('click', () => setResultMode('preview'));
+		editResultButton.addEventListener('click', () => {
+			setResultMode('edit');
+			resultOutput.focus();
+		});
+		resultOutput.addEventListener('input', updateResultPreview);
+		copyResultButton.addEventListener('click', () => {
+			const prompt = resultOutput.value.trim();
+
+			if (!prompt) {
+				resultOutput.focus();
+				return;
+			}
+
+			vscode.postMessage({ type: 'copyGeneratedPrompt', prompt });
+		});
 		cancelButton.addEventListener('click', () => vscode.postMessage({ type: 'cancel' }));
 		promptInput.addEventListener('keydown', event => {
 			if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {

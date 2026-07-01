@@ -4,7 +4,7 @@ import { runPresetPipeline } from '../pipeline/runPresetPipeline';
 import { getPromptPreset } from '../presets/promptPresets';
 import { showPromptComposer } from '../webviews/composer/promptComposer';
 
-export function registerOptimizeCommand(): vscode.Disposable {
+export function registerOptimizeCommand(extensionUri: vscode.Uri): vscode.Disposable {
 	return vscode.commands.registerCommand('promptir.optimize', async () => {
 		const workspaceContext = getActiveEditorContext();
 
@@ -13,44 +13,26 @@ export function registerOptimizeCommand(): vscode.Disposable {
 			return;
 		}
 
-		const composerResult = await showPromptComposer(workspaceContext.fileName, {
+		await showPromptComposer(workspaceContext.fileName, extensionUri, {
 			generateFollowUpQuestions: prompt => runPresetPipeline(
 				prompt,
 				workspaceContext,
 				getPromptPreset('askFollowUpQuestions')
-			)
+			),
+			generatePrompt: (composerResult, onFragment) => {
+				const preset = getPromptPreset(composerResult.presetId);
+
+				return vscode.window.withProgress({
+					location: vscode.ProgressLocation.Notification,
+					title: `PromptIR: ${preset.label}`,
+					cancellable: false
+				}, async progress => {
+					progress.report({ message: 'Gathering files and diagnostics...' });
+
+					progress.report({ message: 'Synthesizing prompt...' });
+					return runPresetPipeline(composerResult.prompt, workspaceContext, preset, { onFragment });
+				});
+			}
 		});
-
-		if (!composerResult) {
-			return;
-		}
-
-		const preset = getPromptPreset(composerResult.presetId);
-
-		try {
-			const generatedPrompt = await vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
-				title: `PromptIR: ${preset.label}`,
-				cancellable: false
-			}, async progress => {
-				progress.report({ message: 'Gathering files and diagnostics...' });
-
-				progress.report({ message: 'Synthesizing prompt...' });
-				return runPresetPipeline(composerResult.prompt, workspaceContext, preset);
-			});
-
-			await vscode.env.clipboard.writeText(generatedPrompt);
-
-			const document = await vscode.workspace.openTextDocument({
-				content: generatedPrompt,
-				language: 'plaintext'
-			});
-
-			await vscode.window.showTextDocument(document, vscode.ViewColumn.Beside);
-			vscode.window.showInformationMessage('PromptIR copied the generated prompt. Paste it into Codex or Claude chat.');
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Unable to generate prompt.';
-			vscode.window.showErrorMessage(`PromptIR failed: ${message}`);
-		}
 	});
 }

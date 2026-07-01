@@ -5,7 +5,7 @@ import { registerOptimizeCommand } from './commands/optimizeCommand';
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
-		registerOptimizeCommand(),
+		registerOptimizeCommand(context.extensionUri),
 		registerCopyCommand(),
 		registerChatParticipant()
 	);

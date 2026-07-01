@@ -20,7 +20,10 @@
       {
         "command": "promptir.optimize",
         "title": "PromptIR: Optimize Prompt with Context",
-        "icon": "$(sparkle)"
+        "icon": {
+          "light": "media/promptir-logo.svg",
+          "dark": "media/promptir-logo.svg"
+        }
       },
       {
         "command": "promptir.copyToClipboard",

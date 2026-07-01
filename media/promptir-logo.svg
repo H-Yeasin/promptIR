@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="irGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#B34700" />
+      <stop offset="55%" stop-color="#FF8A00" />
+      <stop offset="100%" stop-color="#FFC24D" />
+    </linearGradient>
+  </defs>
+
+  <!-- Hexagon frame: structured, technical container -->
+  <path d="M 256,40 L 428,138 L 428,334 L 256,432 L 84,334 L 84,138 Z"
+        fill="none"
+        stroke="url(#irGrad)"
+        stroke-width="22"
+        stroke-linejoin="round"
+        stroke-linecap="round" />
+
+  <!-- Prompt cursor ">" that resolves into an upward optimization chevron —
+       reads as "input becomes refined output" -->
+  <path d="M 168,196 L 236,256 L 168,316"
+        fill="none"
+        stroke="url(#irGrad)"
+        stroke-width="26"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+
+  <path d="M 236,316 L 300,256 L 236,196"
+        fill="none"
+        stroke="#FFD98A"
+        stroke-width="26"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.85" />
+</svg>
