@@ -1,29 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" id="promptIR-logomark">
-  <g id="mark">
-    <!-- Front chevron: solid, full-strength brand color -->
-    <path d="M 116,142
-             C 129,129 150,129 163,142
-             L 271,250
-             C 284,263 284,285 271,298
-             L 163,406
-             C 150,419 129,419 116,406
-             C 103,393 103,372 116,359
-             L 200,275
-             L 116,191
-             C 103,178 103,155 116,142 Z"
-          fill="#E8720C" />
+  <g id="mark" transform="translate(18.85,23.10) scale(0.85)">
+    <g transform="translate(148,0) scale(-1,1) translate(-136,0)">
+      <!-- Thinner "<" : stroke-based chevron instead of the filled shape,
+           so thickness is just one number (stroke-width) to tune -->
+      <path d="M 122,152 L 268,275 L 122,398"
+            fill="none"
+            stroke="#F5B87A"
+            stroke-width="50"
+            stroke-linecap="round"
+            stroke-linejoin="round" />
+    </g>
 
-    <!-- Rear chevron: same shape, lighter tint, offset for depth and rhythm -->
-    <path d="M 252,142
-             C 265,129 286,129 299,142
-             L 407,250
-             C 420,263 420,285 407,298
-             L 299,406
-             C 286,419 265,419 252,406
-             C 239,393 239,372 252,359
-             L 336,275
-             L 252,191
-             C 239,178 239,155 252,142 Z"
-          fill="#F5B87A" />
+    <rect x="214.0" y="180" width="50" height="350" rx="6"
+          fill="#e2924b" transform="rotate(14 520.0 310)" />
+
+    <path d="M 116,142 C 129,129 150,129 163,142 L 271,250 C 284,263 284,285 271,298 L 163,406 C 150,419 129,419 116,406 C 103,393 103,372 116,359 L 200,275 L 116,191 C 103,178 103,155 116,142 Z" fill="#F5B87A" transform="translate(158,0)" />
+    <path d="M 116,142 C 129,129 150,129 163,142 L 271,250 C 284,263 284,285 271,298 L 163,406 C 150,419 129,419 116,406 C 103,393 103,372 116,359 L 200,275 L 116,191 C 103,178 103,155 116,142 Z" fill="#E8720C" transform="translate(274,0)" />
   </g>
 </svg>
