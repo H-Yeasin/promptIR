@@ -25,6 +25,14 @@ export interface WorkspaceContext {
 	diagnostics?: ContextDiagnostic[];
 }
 
+export function truncateContext(text: string, maxChars = 8000): string {
+	if (text.length <= maxChars) {
+		return text;
+	}
+
+	return `${text.slice(0, maxChars).trimEnd()}\n\n[PromptIR truncated this context at ${maxChars} characters.]`;
+}
+
 export function getActiveEditorContext(): WorkspaceContext | null {
 	const editor = vscode.window.activeTextEditor;
 
@@ -59,7 +67,7 @@ export async function getPromptAwareWorkspaceContext(
 		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
 
 		return {
-			...baseContext,
+			...trimBaseContext(baseContext, contextStrategy),
 			relatedFiles,
 			diagnostics
 		};
@@ -70,7 +78,7 @@ export async function getPromptAwareWorkspaceContext(
 		const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
 
 		return {
-			...baseContext,
+			...trimBaseContext(baseContext, contextStrategy),
 			relatedFiles,
 			diagnostics
 		};
@@ -82,7 +90,7 @@ export async function getPromptAwareWorkspaceContext(
 		const prioritizedDiagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
 
 		return {
-			...baseContext,
+			...trimBaseContext(baseContext, contextStrategy),
 			relatedFiles,
 			diagnostics: prioritizedDiagnostics
 		};
@@ -96,7 +104,7 @@ export async function getPromptAwareWorkspaceContext(
 	const diagnostics = collectRelevantDiagnostics(baseContext.fileName, relatedFiles, contextStrategy);
 
 	return {
-		...baseContext,
+		...trimBaseContext(baseContext, contextStrategy),
 		relatedFiles,
 		diagnostics
 	};
@@ -138,6 +146,7 @@ async function findRelevantWorkspaceFiles(
 		.sort((left, right) => right.score - left.score)
 		.slice(0, 5);
 
+	const maxChars = contextStrategy === 'activeFileAndRelatedFiles' ? 4000 : 6000;
 	const relatedFiles: ContextFile[] = [];
 
 	for (const candidate of ranked) {
@@ -148,7 +157,7 @@ async function findRelevantWorkspaceFiles(
 			relatedFiles.push({
 				fileName: document.fileName,
 				languageId: document.languageId,
-				text: text.slice(0, 6000),
+				text: truncateContext(text, maxChars),
 				score: candidate.score
 			});
 		} catch {
@@ -184,7 +193,7 @@ async function findWorkspaceSummaryFiles(
 		.sort((left, right) => right.score - left.score)
 		.slice(0, limit);
 
-	return readContextFiles(ranked);
+	return readContextFiles(ranked, 3000);
 }
 
 function mergeContextFiles(files: ContextFile[]): ContextFile[] {
@@ -203,7 +212,7 @@ function mergeContextFiles(files: ContextFile[]): ContextFile[] {
 		.slice(0, 8);
 }
 
-async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[]): Promise<ContextFile[]> {
+async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[], maxChars = 6000): Promise<ContextFile[]> {
 	const relatedFiles: ContextFile[] = [];
 
 	for (const candidate of candidates) {
@@ -214,7 +223,7 @@ async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[]
 			relatedFiles.push({
 				fileName: document.fileName,
 				languageId: document.languageId,
-				text: text.slice(0, 6000),
+				text: truncateContext(text, maxChars),
 				score: candidate.score
 			});
 		} catch {
@@ -226,23 +235,31 @@ async function readContextFiles(candidates: { uri: vscode.Uri; score: number }[]
 }
 
 async function readDiagnosticFiles(diagnostics: ContextDiagnostic[], activeFileName: string): Promise<ContextFile[]> {
-	const fileNames = Array.from(new Set(
-		diagnostics
-			.map(diagnostic => diagnostic.fileName)
-			.filter(fileName => fileName !== activeFileName)
-	)).slice(0, 5);
+	const diagnosticsByFile = new Map<string, ContextDiagnostic[]>();
+
+	for (const diagnostic of diagnostics) {
+		if (diagnostic.fileName === activeFileName) {
+			continue;
+		}
+
+		const fileDiagnostics = diagnosticsByFile.get(diagnostic.fileName) ?? [];
+		fileDiagnostics.push(diagnostic);
+		diagnosticsByFile.set(diagnostic.fileName, fileDiagnostics);
+	}
+
+	const fileDiagnostics = Array.from(diagnosticsByFile.entries()).slice(0, 5);
 
 	const relatedFiles: ContextFile[] = [];
 
-	for (const fileName of fileNames) {
+	for (const [fileName, diagnosticsForFile] of fileDiagnostics) {
 		try {
 			const document = await vscode.workspace.openTextDocument(vscode.Uri.file(fileName));
-			const text = document.getText();
+			const text = buildDiagnosticAdjacentSnippet(document, diagnosticsForFile);
 
 			relatedFiles.push({
 				fileName: document.fileName,
 				languageId: document.languageId,
-				text: text.slice(0, 6000),
+				text: truncateContext(text, 5000),
 				score: 10
 			});
 		} catch {
@@ -251,6 +268,56 @@ async function readDiagnosticFiles(diagnostics: ContextDiagnostic[], activeFileN
 	}
 
 	return relatedFiles;
+}
+
+function trimBaseContext(baseContext: WorkspaceContext, contextStrategy: ContextStrategy): WorkspaceContext {
+	if (contextStrategy === 'workspaceSummary') {
+		return {
+			...baseContext,
+			selectedText: truncateContext(baseContext.selectedText, 3000)
+		};
+	}
+
+	if (contextStrategy === 'activeFileAndRelatedFiles') {
+		return {
+			...baseContext,
+			selectedText: truncateContext(baseContext.selectedText, 5000)
+		};
+	}
+
+	return baseContext;
+}
+
+function buildDiagnosticAdjacentSnippet(
+	document: vscode.TextDocument,
+	diagnostics: ContextDiagnostic[]
+): string {
+	const snippets: string[] = [];
+	const sortedDiagnostics = diagnostics
+		.sort((left, right) => left.line - right.line)
+		.slice(0, 5);
+
+	for (const diagnostic of sortedDiagnostics) {
+		const diagnosticLine = diagnostic.line - 1;
+		const startLine = Math.max(0, diagnosticLine - 5);
+		const endLine = Math.min(document.lineCount - 1, diagnosticLine + 5);
+		const lines: string[] = [];
+
+		for (let line = startLine; line <= endLine; line++) {
+			const marker = line === diagnosticLine ? '>' : ' ';
+			lines.push(`${marker} ${line + 1}: ${document.lineAt(line).text}`);
+		}
+
+		snippets.push([
+			`Diagnostic at ${diagnostic.line}:${diagnostic.column} (${diagnostic.severity})`,
+			diagnostic.source ? `Source: ${diagnostic.source}` : undefined,
+			`Message: ${diagnostic.message}`,
+			'Adjacent code:',
+			lines.join('\n')
+		].filter(Boolean).join('\n'));
+	}
+
+	return snippets.join('\n\n---\n\n');
 }
 
 function getContextSearchText(

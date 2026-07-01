@@ -2,12 +2,22 @@ import * as vscode from 'vscode';
 import { processPromptWithAI } from './aiEngine';
 import { getActiveEditorContext, getPromptAwareWorkspaceContext } from './contextGatherer';
 import { getPromptForPreset, getPromptPreset, promptPresets } from './promptPresets';
-import type { PromptPresetId } from './promptPresets';
+import type { PromptProcessingOptions } from './aiEngine';
+import type { WorkspaceContext } from './contextGatherer';
+import type { PromptPreset, PromptPresetId } from './promptPresets';
 
 interface ComposerResult {
 	presetId: PromptPresetId;
 	prompt: string;
 }
+
+const chatCommandPresetIds = new Map<string, PromptPresetId>([
+	['optimize', 'optimize'],
+	['review', 'reviewBugs'],
+	['explain', 'explainFile'],
+	['problems', 'analyzeProblems'],
+	['plan', 'implementationPlan']
+]);
 
 export function activate(context: vscode.ExtensionContext) {
 	const optimizeCommand = vscode.commands.registerCommand('promptir.optimize', async () => {
@@ -25,12 +35,6 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const preset = getPromptPreset(composerResult.presetId);
-		const rawPrompt = getPromptForPreset(composerResult.prompt, preset);
-
-		if (preset.requiresPrompt && !rawPrompt.trim()) {
-			vscode.window.showWarningMessage(`${preset.label} needs a short goal before PromptIR can continue.`);
-			return;
-		}
 
 		try {
 			const generatedPrompt = await vscode.window.withProgress({
@@ -39,14 +43,9 @@ export function activate(context: vscode.ExtensionContext) {
 				cancellable: false
 			}, async progress => {
 				progress.report({ message: 'Gathering files and diagnostics...' });
-				const promptAwareContext = await getPromptAwareWorkspaceContext(
-					rawPrompt.trim(),
-					workspaceContext,
-					preset.contextStrategy
-				);
 
 				progress.report({ message: 'Synthesizing prompt...' });
-				return processPromptWithAI(rawPrompt.trim(), promptAwareContext, preset);
+				return runPresetPipeline(composerResult.prompt, workspaceContext, preset);
 			});
 
 			await vscode.env.clipboard.writeText(generatedPrompt);
@@ -70,7 +69,9 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	const chatParticipant = vscode.chat.createChatParticipant('promptir.chat', async (request, _chatContext, response) => {
-		if (request.command && request.command !== 'optimize') {
+		const presetId = chatCommandPresetIds.get(request.command ?? 'optimize');
+
+		if (!presetId) {
 			return {
 				errorDetails: {
 					message: `Unknown PromptIR command: /${request.command}`
@@ -79,21 +80,22 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const workspaceContext = getActiveEditorContext();
+		const preset = getPromptPreset(presetId);
 
 		if (!workspaceContext) {
 			return {
 				errorDetails: {
-					message: 'Open a file before using @promptir /optimize.'
+					message: `Open a file before using @promptir /${request.command ?? 'optimize'}.`
 				}
 			};
 		}
 
 		const rawPrompt = request.prompt.trim();
 
-		if (!rawPrompt) {
+		if (preset.requiresPrompt && !rawPrompt) {
 			return {
 				errorDetails: {
-					message: 'Add a raw prompt after @promptir /optimize.'
+					message: `Add input after @promptir /${request.command ?? 'optimize'} before PromptIR can continue.`
 				}
 			};
 		}
@@ -101,29 +103,28 @@ export function activate(context: vscode.ExtensionContext) {
 		response.progress('Gathering files and diagnostics...');
 
 		try {
-			const promptAwareContext = await getPromptAwareWorkspaceContext(rawPrompt, workspaceContext);
-
-			response.progress(`Optimizing with ${promptAwareContext.relatedFiles?.length ?? 0} retrieved file(s) and ${promptAwareContext.diagnostics?.length ?? 0} diagnostic(s)...`);
-			response.markdown('Optimized prompt:\n\n');
-			const optimizedPrompt = await processPromptWithAI(rawPrompt, promptAwareContext, getPromptPreset('optimize'), {
+			response.progress(`Generating with ${preset.label}...`);
+			response.markdown(`${preset.label} prompt:\n\n`);
+			const generatedPrompt = await runPresetPipeline(rawPrompt, workspaceContext, preset, {
 				onFragment: fragment => response.markdown(escapeMarkdown(fragment))
 			});
 
-			await vscode.env.clipboard.writeText(optimizedPrompt);
-			response.markdown('\n\nCopied optimized prompt to clipboard.');
+			await vscode.env.clipboard.writeText(generatedPrompt);
+			response.markdown('\n\nCopied generated prompt to clipboard.');
 			response.button({
 				command: 'promptir.copyToClipboard',
-				title: 'Copy optimized prompt',
-				arguments: [optimizedPrompt]
+				title: 'Copy generated prompt',
+				arguments: [generatedPrompt]
 			});
 
 			return {
 				metadata: {
-					command: 'optimize'
+					command: request.command ?? 'optimize',
+					presetId
 				}
 			};
 		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Unable to optimize prompt.';
+			const message = error instanceof Error ? error.message : 'Unable to generate prompt.';
 
 			return {
 				errorDetails: {
@@ -137,6 +138,27 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
+async function runPresetPipeline(
+	prompt: string,
+	workspaceContext: WorkspaceContext,
+	preset: PromptPreset,
+	options: PromptProcessingOptions = {}
+): Promise<string> {
+	const rawPrompt = getPromptForPreset(prompt, preset);
+
+	if (preset.requiresPrompt && !rawPrompt.trim()) {
+		throw new Error(`${preset.label} needs input before PromptIR can continue.`);
+	}
+
+	const promptAwareContext = await getPromptAwareWorkspaceContext(
+		rawPrompt.trim(),
+		workspaceContext,
+		preset.contextStrategy
+	);
+
+	return processPromptWithAI(rawPrompt.trim(), promptAwareContext, preset, options);
+}
 
 function showPromptComposer(fileName: string): Promise<ComposerResult | undefined> {
 	return new Promise(resolve => {
@@ -187,10 +209,11 @@ function getComposerHtml(webview: vscode.Webview, fileName: string): string {
 	const escapedFileName = escapeHtml(fileName);
 	const presetsJson = JSON.stringify(promptPresets.map(preset => ({
 		id: preset.id,
+		category: preset.category,
 		label: preset.label,
 		description: preset.description,
 		actionLabel: preset.actionLabel,
-		placeholder: preset.placeholder,
+		placeholderText: preset.placeholderText,
 		requiresPrompt: preset.requiresPrompt
 	}))).replace(/</g, '\\u003c');
 
@@ -239,7 +262,26 @@ function getComposerHtml(webview: vscode.Webview, fileName: string): string {
 
 		.presets {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			gap: 14px;
+		}
+
+		.preset-group {
+			display: grid;
+			gap: 8px;
+		}
+
+		.preset-group-title {
+			margin: 0;
+			color: var(--vscode-descriptionForeground);
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0;
+			text-transform: uppercase;
+		}
+
+		.preset-group-items {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 			gap: 8px;
 		}
 
@@ -281,6 +323,10 @@ function getComposerHtml(webview: vscode.Webview, fileName: string): string {
 			color: var(--vscode-descriptionForeground);
 			font-size: 12px;
 			line-height: 1.4;
+		}
+
+		.selected-preset strong {
+			color: var(--vscode-foreground);
 		}
 
 		textarea {
@@ -368,7 +414,20 @@ function getComposerHtml(webview: vscode.Webview, fileName: string): string {
 		const hint = document.getElementById('hint');
 
 		function renderPresets() {
-			presetsContainer.replaceChildren(...presets.map(preset => {
+			const categories = ['General', 'Code', 'Debugging', 'Specialized'];
+
+			presetsContainer.replaceChildren(...categories.map(category => {
+				const group = document.createElement('section');
+				const heading = document.createElement('h2');
+				const items = document.createElement('div');
+				const categoryPresets = presets.filter(preset => preset.category === category);
+
+				group.className = 'preset-group';
+				heading.className = 'preset-group-title';
+				heading.textContent = category;
+				items.className = 'preset-group-items';
+
+				items.replaceChildren(...categoryPresets.map(preset => {
 				const button = document.createElement('button');
 				const title = document.createElement('span');
 				const description = document.createElement('span');
@@ -389,15 +448,19 @@ function getComposerHtml(webview: vscode.Webview, fileName: string): string {
 				});
 
 				return button;
+				}));
+
+				group.append(heading, items);
+				return group;
 			}));
 		}
 
 		function updateSelectedPreset() {
-			promptInput.placeholder = selectedPreset.placeholder;
+			promptInput.placeholder = selectedPreset.placeholderText;
 			generateButton.textContent = selectedPreset.actionLabel;
-			selectedPresetText.textContent = selectedPreset.description;
+			selectedPresetText.innerHTML = '<strong>' + selectedPreset.label + '</strong>: ' + selectedPreset.description;
 			hint.textContent = selectedPreset.requiresPrompt
-				? 'Ctrl+Enter to generate after adding a goal'
+				? 'Ctrl+Enter to generate after adding the required input'
 				: 'Ctrl+Enter to generate; prompt details are optional';
 		}
 

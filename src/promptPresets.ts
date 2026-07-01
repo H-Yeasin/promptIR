@@ -1,5 +1,7 @@
 import type { WorkspaceContext } from './contextGatherer';
 
+export type PresetCategory = 'General' | 'Code' | 'Debugging' | 'Specialized';
+
 export type ContextStrategy =
 	| 'promptAware'
 	| 'selectionOrActiveFile'
@@ -25,10 +27,11 @@ export type PromptPresetId =
 
 export interface PromptPreset {
 	id: PromptPresetId;
+	category: PresetCategory;
 	label: string;
 	description: string;
 	actionLabel: string;
-	placeholder: string;
+	placeholderText: string;
 	contextStrategy: ContextStrategy;
 	requiresPrompt: boolean;
 	defaultGoal: string;
@@ -38,13 +41,14 @@ export interface PromptPreset {
 export const promptPresets: PromptPreset[] = [
 	{
 		id: 'optimize',
+		category: 'General',
 		label: 'Optimize Prompt',
 		description: 'Rewrite a rough goal into a context-aware agent prompt.',
 		actionLabel: 'Optimize',
-		placeholder: 'Describe what you want the agent to do. Add constraints, preferred style, edge cases, or testing expectations here.',
+		placeholderText: 'Describe what you want the agent to do. Add constraints, preferred style, edge cases, or testing expectations here.',
 		contextStrategy: 'promptAware',
 		requiresPrompt: true,
-		defaultGoal: '',
+		defaultGoal: 'Optimize the current developer task into a specific, context-aware prompt for an AI coding agent.',
 		instruction: [
 			'Transform the raw developer goal into a highly descriptive, step-by-step prompt for an AI coding agent.',
 			'Preserve the user intent, use the workspace context to make the prompt specific, and include verification steps when useful.'
@@ -52,10 +56,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'analyzeProblems',
+		category: 'Debugging',
 		label: 'Analyze Current Problems',
 		description: 'Use VS Code diagnostics to prepare a focused fix prompt.',
 		actionLabel: 'Analyze Problems',
-		placeholder: 'Optional: add recent changes, failing behavior, or constraints the agent should respect while fixing diagnostics.',
+		placeholderText: 'Optional: add recent changes, failing behavior, or constraints the agent should respect while fixing diagnostics.',
 		contextStrategy: 'diagnosticsFocused',
 		requiresPrompt: false,
 		defaultGoal: 'Investigate and fix the current VS Code Problems diagnostics safely.',
@@ -67,10 +72,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'explainFile',
+		category: 'Code',
 		label: 'Explain This File',
 		description: 'Ask for architecture, responsibilities, dependencies, and risks.',
 		actionLabel: 'Explain',
-		placeholder: 'Optional: mention anything specific you want explained about the active file or selection.',
+		placeholderText: 'Optional: mention anything specific you want explained about the active file or selection.',
 		contextStrategy: 'selectionOrActiveFile',
 		requiresPrompt: false,
 		defaultGoal: 'Explain the active file or selected code.',
@@ -82,10 +88,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'refactorSafely',
+		category: 'Code',
 		label: 'Refactor Safely',
 		description: 'Focus on behavior-preserving cleanup and tests.',
 		actionLabel: 'Prepare Refactor Prompt',
-		placeholder: 'Optional: describe the area that feels messy, duplicated, hard to name, or risky to change.',
+		placeholderText: 'Optional: describe the area that feels messy, duplicated, hard to name, or risky to change.',
 		contextStrategy: 'activeFileAndRelatedFiles',
 		requiresPrompt: false,
 		defaultGoal: 'Refactor this code safely without changing behavior.',
@@ -97,10 +104,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'askFollowUpQuestions',
+		category: 'General',
 		label: 'Ask Follow-Up Questions',
 		description: 'Generate 3-5 clarifying questions instead of a full prompt.',
 		actionLabel: 'Ask Questions',
-		placeholder: 'Describe the rough or vague goal. PromptIR will turn it into practical clarifying questions.',
+		placeholderText: 'Describe the rough or vague goal. PromptIR will turn it into practical clarifying questions.',
 		contextStrategy: 'selectionOrActiveFile',
 		requiresPrompt: false,
 		defaultGoal: 'Ask clarifying questions before creating an agent prompt.',
@@ -112,10 +120,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'reviewBugs',
+		category: 'Code',
 		label: 'Review For Bugs',
 		description: 'Generate a code-review prompt for correctness and regressions.',
 		actionLabel: 'Prepare Review Prompt',
-		placeholder: 'Optional: describe the feature, flow, or risk area the review should focus on.',
+		placeholderText: 'Optional: describe the feature, flow, or risk area the review should focus on.',
 		contextStrategy: 'activeFileAndRelatedFiles',
 		requiresPrompt: false,
 		defaultGoal: 'Review this code for bugs.',
@@ -127,10 +136,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'improveUiUx',
+		category: 'Specialized',
 		label: 'Improve UI/UX',
 		description: 'Gather component, page, style, and theme context.',
 		actionLabel: 'Prepare UI/UX Prompt',
-		placeholder: 'Optional: describe the screen, component, user flow, or design direction you want improved.',
+		placeholderText: 'Optional: describe the screen, component, user flow, or design direction you want improved.',
 		contextStrategy: 'uiComponentFocused',
 		requiresPrompt: false,
 		defaultGoal: 'Improve the UI and UX of the active component or screen.',
@@ -142,10 +152,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'summarizeWorkspace',
+		category: 'Specialized',
 		label: 'Summarize Workspace Context',
 		description: 'Create a compact project map for external agents.',
 		actionLabel: 'Summarize Workspace',
-		placeholder: 'Optional: mention the feature area, folder, or technology the project map should emphasize.',
+		placeholderText: 'Optional: mention the feature area, folder, or technology the project map should emphasize.',
 		contextStrategy: 'workspaceSummary',
 		requiresPrompt: false,
 		defaultGoal: 'Summarize this workspace into a compact project map.',
@@ -157,10 +168,11 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'securityPerformancePass',
+		category: 'Specialized',
 		label: 'Security/Performance Pass',
 		description: 'Look for risky code paths and inefficient behavior.',
 		actionLabel: 'Prepare Risk Prompt',
-		placeholder: 'Optional: describe the request flow, API, screen, or code path that should get the risk/performance review.',
+		placeholderText: 'Optional: describe the request flow, API, screen, or code path that should get the risk/performance review.',
 		contextStrategy: 'securityPerformanceFocused',
 		requiresPrompt: false,
 		defaultGoal: 'Review this code for security and performance risks.',
@@ -172,13 +184,14 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'diagnoseBuildFailure',
+		category: 'Debugging',
 		label: 'Diagnose Build Failure',
 		description: 'Combine pasted build output with diagnostics and related files.',
 		actionLabel: 'Diagnose Build',
-		placeholder: 'Paste terminal/build/test output here. You can also add what command failed and what changed recently.',
+		placeholderText: 'Paste terminal build log errors here. Include the failed command, stack trace, compiler/test output, and recent changes if you know them.',
 		contextStrategy: 'buildFailureFocused',
 		requiresPrompt: true,
-		defaultGoal: '',
+		defaultGoal: 'Diagnose the current build or test failure using available diagnostics and workspace context.',
 		instruction: [
 			'Create a focused build-failure debugging prompt for an AI coding agent.',
 			'The raw goal may contain terminal, build, compiler, or test output. The prompt should preserve the important errors, connect them to diagnostics and relevant files, identify likely root causes, and propose a safe investigation/fix order.',
@@ -187,13 +200,14 @@ export const promptPresets: PromptPreset[] = [
 	},
 	{
 		id: 'implementationPlan',
+		category: 'General',
 		label: 'Prepare Implementation Plan',
 		description: 'Convert a goal into a step-by-step plan without code edits.',
 		actionLabel: 'Prepare Plan',
-		placeholder: 'Describe the feature, bug, or change you want planned. The output will not ask the agent to edit code yet.',
+		placeholderText: 'Describe the feature, bug, or change you want planned. The output will not ask the agent to edit code yet.',
 		contextStrategy: 'promptAware',
 		requiresPrompt: true,
-		defaultGoal: '',
+		defaultGoal: 'Prepare a step-by-step engineering implementation plan using the current workspace context.',
 		instruction: [
 			'Create a planning-only prompt for an AI coding agent.',
 			'The prompt should ask for a step-by-step engineering plan, relevant files to inspect, likely risks, test strategy, and open questions.',
@@ -201,6 +215,9 @@ export const promptPresets: PromptPreset[] = [
 		].join(' ')
 	}
 ];
+
+export type IntentPreset = PromptPreset;
+export const AVAILABLE_PRESETS = promptPresets;
 
 export function getPromptPreset(id: string | undefined): PromptPreset {
 	return promptPresets.find(preset => preset.id === id) ?? promptPresets[0];

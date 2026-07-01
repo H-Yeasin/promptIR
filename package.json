@@ -38,6 +38,22 @@
           {
             "name": "optimize",
             "description": "Optimize a raw prompt using the active editor context."
+          },
+          {
+            "name": "review",
+            "description": "Prepare a bug-review prompt using the active editor context."
+          },
+          {
+            "name": "explain",
+            "description": "Prepare an explanation prompt for the active file or selection."
+          },
+          {
+            "name": "problems",
+            "description": "Prepare a prompt focused on current VS Code Problems diagnostics."
+          },
+          {
+            "name": "plan",
+            "description": "Prepare a planning-only prompt without asking for code edits."
           }
         ]
       }
