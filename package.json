@@ -41,8 +41,10 @@
   "pricing": "Free",
   "activationEvents": [
     "onCommand:promptir.optimize",
+    "onCommand:promptir.openSidebar",
     "onCommand:promptir.copyToClipboard",
-    "onChatParticipant:promptir.chat"
+    "onChatParticipant:promptir.chat",
+    "onView:promptir.sidebar"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -58,8 +60,35 @@
       {
         "command": "promptir.copyToClipboard",
         "title": "PromptIR: Copy Optimized Prompt"
+      },
+      {
+        "command": "promptir.openSidebar",
+        "title": "PromptIR: Open Chatbox",
+        "icon": {
+          "light": "media/promptir-logo.svg",
+          "dark": "media/promptir-logo.svg"
+        }
       }
     ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "promptir",
+          "title": "PromptIR",
+          "icon": "media/promptir-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "promptir": [
+        {
+          "id": "promptir.sidebar",
+          "name": "PromptIR",
+          "icon": "media/promptir-logo.svg",
+          "type": "webview"
+        }
+      ]
+    },
     "chatParticipants": [
       {
         "id": "promptir.chat",
@@ -98,6 +127,30 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "PromptIR",
+      "properties": {
+        "promptir.aiProvider": {
+          "type": "string",
+          "enum": [
+            "Copilot",
+            "OpenAI"
+          ],
+          "default": "Copilot",
+          "description": "Select the AI provider to use. 'Copilot' uses the native VS Code LM API. 'OpenAI' uses a custom API key."
+        },
+        "promptir.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your OpenAI API key (if using OpenAI provider). Leave blank to use Copilot."
+        },
+        "promptir.openaiModel": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "The OpenAI model to use (e.g., gpt-4o, gpt-4o-mini)."
+        }
+      }
     }
   },
   "scripts": {
@@ -129,5 +182,8 @@
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "dependencies": {
+    "openai": "^6.45.0"
   }
 }

@@ -75,11 +75,26 @@ Planned directions include:
 
 ## Requirements
 
-PromptIR uses VS Code language model access through Copilot. You need an authorized Copilot language model available in VS Code.
+PromptIR offers two ways to access AI language models: **GitHub Copilot** (built-in via VS Code) or **OpenAI** (via custom API key).
+
+### Option 1: GitHub Copilot (Default)
+PromptIR can use the native `vscode.lm` API.
+1. Install the [GitHub Copilot extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot).
+2. Sign in to your GitHub account with an active Copilot subscription.
+
+### Option 2: OpenAI API Key
+If you do not use Copilot, you can provide your own OpenAI API key in the extension settings.
+1. Open VS Code Settings (`Ctrl+,` or `Cmd+,`).
+2. Search for `PromptIR`.
+3. Set the **AI Provider** to `OpenAI`.
+4. Enter your API key in **OpenAI API Key**.
 
 ## Extension Settings
 
-This extension does not currently contribute settings.
+PromptIR contributes the following settings:
+- `promptir.aiProvider`: Choose between `Copilot` (default) and `OpenAI`.
+- `promptir.openaiApiKey`: Your OpenAI API key if using the OpenAI provider.
+- `promptir.openaiModel`: The OpenAI model to use (default: `gpt-4o`).
 
 ## Known Issues
 

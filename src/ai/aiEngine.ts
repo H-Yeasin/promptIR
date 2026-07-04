@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { WorkspaceContext } from '../context/contextGatherer';
 import { describePresetContext, PromptPreset, promptPresets } from '../presets/promptPresets';
 
+import { OpenAI } from 'openai';
+
 export interface PromptProcessingOptions {
 	onFragment?: (fragment: string) => void;
 }
@@ -12,12 +14,8 @@ export async function processPromptWithAI(
 	preset: PromptPreset = promptPresets[0],
 	options: PromptProcessingOptions = {}
 ): Promise<string> {
-	const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
-	const model = models[0];
-
-	if (!model) {
-		throw new Error('No authorized Copilot language model is available.');
-	}
+	const config = vscode.workspace.getConfiguration('promptir');
+	const aiProvider = config.get<string>('aiProvider', 'Copilot');
 
 	const systemInstruction = [
 		'You are a Meta-Prompt Engineer.',
@@ -41,16 +39,48 @@ export async function processPromptWithAI(
 		formatDiagnostics(context)
 	].join('\n\n');
 
-	const chatResponse = await model.sendRequest([
-		vscode.LanguageModelChatMessage.User(systemInstruction),
-		vscode.LanguageModelChatMessage.User(contextPayload)
-	]);
-
 	let optimizedPrompt = '';
 
-	for await (const fragment of chatResponse.text) {
-		optimizedPrompt += fragment;
-		options.onFragment?.(fragment);
+	if (aiProvider === 'OpenAI') {
+		const apiKey = config.get<string>('openaiApiKey');
+		const modelName = config.get<string>('openaiModel', 'gpt-4o');
+
+		if (!apiKey) {
+			throw new Error('OpenAI API key is missing. Please add it to the PromptIR settings.');
+		}
+
+		const openai = new OpenAI({ apiKey });
+		const stream = await openai.chat.completions.create({
+			model: modelName,
+			messages: [
+				{ role: 'system', content: systemInstruction },
+				{ role: 'user', content: contextPayload }
+			],
+			stream: true,
+		});
+
+		for await (const chunk of stream) {
+			const fragment = chunk.choices[0]?.delta?.content || '';
+			optimizedPrompt += fragment;
+			options.onFragment?.(fragment);
+		}
+	} else {
+		const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+		const model = models[0];
+
+		if (!model) {
+			throw new Error('No authorized Copilot language model is available. Ensure GitHub Copilot is installed and active, or switch to the OpenAI provider in settings.');
+		}
+
+		const chatResponse = await model.sendRequest([
+			vscode.LanguageModelChatMessage.User(systemInstruction),
+			vscode.LanguageModelChatMessage.User(contextPayload)
+		]);
+
+		for await (const fragment of chatResponse.text) {
+			optimizedPrompt += fragment;
+			options.onFragment?.(fragment);
+		}
 	}
 
 	return stripMarkdownFence(optimizedPrompt).trim();
