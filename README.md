@@ -1,6 +1,6 @@
 # PromptIR
 
-PromptIR turns rough developer intent into context-aware, agent-ready prompts for modern coding assistants. It reads the active editor, optional selection, related workspace files, and VS Code diagnostics, then generates a focused prompt you can paste into Codex, Claude, Copilot, Gemini, or another agent.
+PromptIR turns rough developer intent into context-aware, agent-ready prompts for modern coding assistants. It reads the active editor, optional selection, related workspace files, Graphify relationship maps, and VS Code diagnostics, then generates a focused prompt you can paste into Codex, Claude, Copilot, Gemini, or another agent.
 
 The goal is simple: stop paying the context tax.
 
@@ -31,11 +31,11 @@ Instead of treating prompting as a manual guessing game, PromptIR turns it into 
 
 ## Features
 
-Use **PromptIR: Optimize Prompt with Context** to open the Composer.
+Use **PromptIR: Open Chatbox** to work from the PromptIR sidebar, or use **PromptIR: Optimize Prompt with Context** to open the Composer.
 
-The Composer includes the first batch of one-click intent presets:
+PromptIR includes one-click intent presets:
 
-- **Optimize Prompt**: rewrite a rough goal into a richer agent prompt.
+- **Optimize Prompt**: rewrite a rough goal into a richer agent prompt with clean folder structure, explicit file boundaries, ASCII directory-tree expectations, and readability constraints.
 - **Analyze Current Problems**: use VS Code Problems diagnostics and related files to prepare a focused debugging/fix prompt.
 - **Explain This File**: explain the active file or selected code, including responsibilities, dependencies, and risks.
 - **Refactor Safely**: prepare a behavior-preserving cleanup prompt with testing expectations.
@@ -45,9 +45,22 @@ The Composer includes the first batch of one-click intent presets:
 - **Summarize Workspace Context**: create a compact project map that can be pasted into an external agent.
 - **Security/Performance Pass**: prepare a risk-focused review prompt for unsafe inputs, auth, async behavior, expensive paths, and missing tests.
 - **Diagnose Build Failure**: combine pasted terminal/build/test output with diagnostics and related files.
-- **Prepare Implementation Plan**: create a planning-only prompt that asks the agent not to edit code yet.
+- **Prepare Implementation Plan**: create a planning-only prompt that locks the agent into Structural Planning Mode before code edits.
 
 Automatic terminal capture is planned for a later version. For now, paste build or test output into the Composer when using **Diagnose Build Failure**.
+
+## Sidebar Workflow
+
+The PromptIR sidebar is designed for repeated prompt refinement without leaving the editor:
+
+- Choose a preset from the sidebar.
+- Add raw instructions or constraints.
+- Generate a context-aware prompt using the active editor, visible editor fallback, related files, diagnostics, and Graphify relationship context when available.
+- Preview generated prompts with lightweight Markdown rendering.
+- Edit the generated prompt before copying or sending it to another agent.
+- Use **Ask Follow-Up Questions** to collect clarifying answers, then generate a final prompt from those answers.
+
+The generated prompt is copied automatically for most presets. Follow-up question mode waits until you answer the questions and create the final prompt.
 
 ## How It Works
 
@@ -55,6 +68,8 @@ PromptIR uses one unified engine behind every preset:
 
 - Parse the developer's raw request and active workspace state.
 - Gather relevant editor, selection, file, and diagnostics context.
+- Build or refresh the Graphify relationship index when available.
+- Pull upstream dependencies, downstream dependents, and connected files from Graphify context.
 - Choose an abstraction strategy for the selected intent profile.
 - Remove noisy context before it reaches the model.
 - Produce a precise prompt that tells the agent what to do, what not to touch, and how to verify the work.
@@ -75,7 +90,7 @@ Planned directions include:
 
 ## Requirements
 
-PromptIR offers two ways to access AI language models: **GitHub Copilot** (built-in via VS Code) or **OpenAI** (via custom API key).
+PromptIR offers two ways to access AI language models: **GitHub Copilot** through the native VS Code Language Model API, or **OpenAI** through your own API key.
 
 ### Option 1: GitHub Copilot (Default)
 PromptIR can use the native `vscode.lm` API.
@@ -95,12 +110,19 @@ PromptIR contributes the following settings:
 - `promptir.aiProvider`: Choose between `Copilot` (default) and `OpenAI`.
 - `promptir.openaiApiKey`: Your OpenAI API key if using the OpenAI provider.
 - `promptir.openaiModel`: The OpenAI model to use (default: `gpt-4o`).
+- `promptir.graphify.autoReindex`: Rebuild Graphify index files incrementally on text document saves.
+- `promptir.graphify.maxDepth`: Maximum number of connected Graphify nodes to include in prompt context.
 
 ## Known Issues
 
-The Chat participant currently supports the optimize flow only. Preset support is available through the Composer.
+- Automatic terminal capture is not available yet. Paste build or test output into **Diagnose Build Failure**.
+- Graphify context is best-effort. If Graphify is unavailable or a graph has not been generated yet, PromptIR continues with editor, file, and diagnostics context.
 
 ## Release Notes
+
+### 0.0.3
+
+PromptIR sidebar, Composer intent presets, diagnostics-aware prompts, Graphify relationship context, pasted build failure diagnosis, workspace summaries, focused review profiles, OpenAI provider settings, and stronger architecture-first prompt templates with ASCII directory-tree and readability constraints.
 
 ### 0.0.2
 

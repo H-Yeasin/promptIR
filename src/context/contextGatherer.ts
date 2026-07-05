@@ -12,7 +12,7 @@ export type { ContextDiagnostic, ContextFile, WorkspaceContext } from './context
 export { truncateContext } from './contextText';
 
 export function getActiveEditorContext(): WorkspaceContext | null {
-	const editor = vscode.window.activeTextEditor;
+	const editor = vscode.window.activeTextEditor ?? vscode.window.visibleTextEditors[0];
 
 	if (!editor) {
 		return null;

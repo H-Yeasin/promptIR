@@ -13,7 +13,12 @@ export const promptPresets: PromptPreset[] = [
 		defaultGoal: 'Optimize the current developer task into a specific, context-aware prompt for an AI coding agent.',
 		instruction: [
 			'Transform the raw developer goal into a highly descriptive, step-by-step prompt for an AI coding agent.',
-			'Preserve the user intent, use the workspace context to make the prompt specific, and include verification steps when useful.'
+			'Preserve the user intent, use the workspace context to make the prompt specific, and include verification steps when useful.',
+			'Inject strict architectural layout constraints into the generated prompt: the downstream coding agent must prioritize clean folder structure, robust directory layout, explicit module boundaries, and code readability before implementation.',
+			'Require the downstream coding agent to output an ASCII directory tree that maps the intended file hierarchy before writing any code blocks. The tree must show new files, modified files, and where each responsibility belongs.',
+			'Require explicit file boundaries in the final prompt: each requested code block or edit section must name the target path and describe that file responsibility before code is written.',
+			'Enforce readability rules in the generated prompt: prefer low cyclomatic complexity, early-return guard patterns, semantic variable and function names, short cohesive functions, clear dependency direction, and simple control flow over clever abstractions.',
+			'Tell the downstream coding agent to keep related concerns grouped by feature or domain, avoid dumping unrelated helpers into generic files, and create small focused modules only when they improve maintainability.'
 		].join(' ')
 	},
 	{
@@ -172,8 +177,13 @@ export const promptPresets: PromptPreset[] = [
 		defaultGoal: 'Prepare a step-by-step engineering implementation plan using the current workspace context.',
 		instruction: [
 			'Create a planning-only prompt for an AI coding agent.',
-			'The prompt should ask for a step-by-step engineering plan, relevant files to inspect, likely risks, test strategy, and open questions.',
-			'It must explicitly say not to edit code yet.'
+			'Lock the downstream coding agent into Structural Planning Mode.',
+			'Structural Planning Mode forbids editing code files, generating patches, or writing implementation code until folder paths, dependency relationships, module boundaries, and class or interface contracts are structurally designed.',
+			'The prompt should require a step-by-step engineering plan, relevant files to inspect, likely risks, test strategy, and open questions.',
+			'Require an ASCII directory tree that proposes the clean target layout before any implementation discussion. The tree must distinguish existing files, new files, moved files, and files that should remain untouched.',
+			'Require an explicit dependency map that explains which modules/classes/functions may depend on each other and which dependencies are forbidden to preserve a clean architecture.',
+			'Require proposed class, function, component, or interface signatures before any code edits are allowed.',
+			'It must explicitly say not to edit code yet and not to proceed to implementation until the structural plan is reviewed or accepted.'
 		].join(' ')
 	}
 ];

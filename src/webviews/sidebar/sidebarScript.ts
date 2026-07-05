@@ -58,7 +58,7 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 		}
 
 		function appendInlineMarkdown(target, text) {
-			const pattern = /(\`[^\`]+\`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_)/g;
+			const pattern = /(\`[^\`]+\`|\\*\\*[^*]+\\*\\*|__[^_]+__|\\*[^*]+\\*|_[^_]+_)/g;
 			let cursor = 0;
 
 			for (const match of text.matchAll(pattern)) {
@@ -68,7 +68,7 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 
 				const token = match[0];
 				const element = document.createElement(token.startsWith('\`') ? 'code' : token.startsWith('**') || token.startsWith('__') ? 'strong' : 'em');
-				element.textContent = token.replace(/^(\`|\*\*|__|\*|_)|(\`|\*\*|__|\*|_)$/g, '');
+				element.textContent = token.replace(/^(\`|\\*\\*|__|\\*|_)|(\`|\\*\\*|__|\\*|_)$/g, '');
 				target.appendChild(element);
 				cursor = match.index + token.length;
 			}
