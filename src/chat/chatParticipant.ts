@@ -38,13 +38,14 @@ export function registerChatParticipant(): vscode.Disposable {
 			};
 		}
 
-		response.progress('Gathering files and diagnostics...');
+		response.progress('Preparing Graphify relationship index...');
 
 		try {
 			response.progress(`Generating with ${preset.label}...`);
 			response.markdown(`${preset.label} prompt:\n\n`);
 			const generatedPrompt = await runPresetPipeline(rawPrompt, workspaceContext, preset, {
-				onFragment: fragment => response.markdown(escapeMarkdown(fragment))
+				onFragment: fragment => response.markdown(escapeMarkdown(fragment)),
+				onStatus: message => response.progress(message)
 			});
 
 			await vscode.env.clipboard.writeText(generatedPrompt);

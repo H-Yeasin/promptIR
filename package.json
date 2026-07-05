@@ -128,30 +128,47 @@
         }
       ]
     },
-    "configuration": {
-      "title": "PromptIR",
-      "properties": {
-        "promptir.aiProvider": {
-          "type": "string",
-          "enum": [
-            "Copilot",
-            "OpenAI"
-          ],
-          "default": "Copilot",
-          "description": "Select the AI provider to use. 'Copilot' uses the native VS Code LM API. 'OpenAI' uses a custom API key."
-        },
-        "promptir.openaiApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Your OpenAI API key (if using OpenAI provider). Leave blank to use Copilot."
-        },
-        "promptir.openaiModel": {
-          "type": "string",
-          "default": "gpt-4o",
-          "description": "The OpenAI model to use (e.g., gpt-4o, gpt-4o-mini)."
+    "configuration": [
+      {
+        "title": "PromptIR",
+        "properties": {
+          "promptir.aiProvider": {
+            "type": "string",
+            "enum": [
+              "Copilot",
+              "OpenAI"
+            ],
+            "default": "Copilot",
+            "description": "Select the AI provider to use. 'Copilot' uses the native VS Code LM API. 'OpenAI' uses a custom API key."
+          },
+          "promptir.openaiApiKey": {
+            "type": "string",
+            "default": "",
+            "description": "Your OpenAI API key (if using OpenAI provider). Leave blank to use Copilot."
+          },
+          "promptir.openaiModel": {
+            "type": "string",
+            "default": "gpt-4o",
+            "description": "The OpenAI model to use (e.g., gpt-4o, gpt-4o-mini)."
+          }
+        }
+      },
+      {
+        "title": "PromptIR Graphify Settings",
+        "properties": {
+          "promptir.graphify.autoReindex": {
+            "type": "boolean",
+            "default": true,
+            "description": "Silently rebuild Graphify index files incrementally on text document saves."
+          },
+          "promptir.graphify.maxDepth": {
+            "type": "number",
+            "default": 5,
+            "description": "Maximum number of connected nodes to pull into context."
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

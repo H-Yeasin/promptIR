@@ -6,6 +6,7 @@ import { OpenAI } from 'openai';
 
 export interface PromptProcessingOptions {
 	onFragment?: (fragment: string) => void;
+	onStatus?: (message: string) => void;
 }
 
 export async function processPromptWithAI(
@@ -21,7 +22,11 @@ export async function processPromptWithAI(
 		'You are a Meta-Prompt Engineer.',
 		preset.instruction,
 		'Use the provided workspace context to make the optimized prompt specific and actionable.',
-		'The context bundle may include active editor text, rule-retrieved files, and current VS Code diagnostics.',
+		'The context bundle may include active editor text, Graphify relationship maps, rule-retrieved files, and current VS Code diagnostics.',
+		'When Graphify relationship context is present, use it to identify upstream dependencies, downstream dependents, and the most relevant code files for the user goal.',
+		'Every optimized prompt must include a concise "Matched project context" section that names the exact relevant file paths and why they matter.',
+		'When code edits are requested or likely, include a "Files and parts to update" section with specific files, functions, classes, widgets, routes, components, or diagnostic locations inferred from the provided context.',
+		'Do not invent files, symbols, or line numbers that are not supported by the provided context. If the exact part is uncertain, say what to inspect first.',
 		'Preserve the user intent and call out relevant files or selected code.',
 		'Return only the optimized prompt text.',
 		'Do not wrap the response in a Markdown code fence.',
@@ -33,8 +38,10 @@ export async function processPromptWithAI(
 		`Raw goal:\n${rawPrompt}`,
 		describePresetContext(context, preset),
 		`Active file: ${context.fileName}`,
+		formatPromptReferencedFile(context),
 		`Language: ${context.languageId}`,
 		`Active editor context:\n\`\`\`${context.languageId}\n${context.selectedText}\n\`\`\``,
+		formatGraphifyContext(context),
 		formatRelatedFiles(context),
 		formatDiagnostics(context)
 	].join('\n\n');
@@ -91,6 +98,18 @@ function stripMarkdownFence(text: string): string {
 	const match = trimmed.match(/^```(?:markdown|md|text)?\s*\r?\n([\s\S]*?)\r?\n```$/i);
 
 	return match?.[1] ?? text;
+}
+
+function formatGraphifyContext(context: WorkspaceContext): string {
+	return context.graphifyContext ?? 'Graphify relationship context: none.';
+}
+
+function formatPromptReferencedFile(context: WorkspaceContext): string {
+	if (!context.promptReferencedFileName) {
+		return 'Prompt-referenced target file: none.';
+	}
+
+	return `Prompt-referenced target file used as context anchor: ${context.promptReferencedFileName}`;
 }
 
 function formatRelatedFiles(context: WorkspaceContext): string {

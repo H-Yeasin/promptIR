@@ -27,10 +27,10 @@ export function registerOptimizeCommand(extensionUri: vscode.Uri): vscode.Dispos
 					title: `PromptIR: ${preset.label}`,
 					cancellable: false
 				}, async progress => {
-					progress.report({ message: 'Gathering files and diagnostics...' });
-
-					progress.report({ message: 'Synthesizing prompt...' });
-					return runPresetPipeline(composerResult.prompt, workspaceContext, preset, { onFragment });
+					return runPresetPipeline(composerResult.prompt, workspaceContext, preset, {
+						onFragment,
+						onStatus: message => progress.report({ message })
+					});
 				});
 			}
 		});

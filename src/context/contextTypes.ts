@@ -18,6 +18,8 @@ export interface WorkspaceContext {
 	fileName: string;
 	languageId: string;
 	selectedText: string;
+	promptReferencedFileName?: string;
+	graphifyContext?: string;
 	relatedFiles?: ContextFile[];
 	diagnostics?: ContextDiagnostic[];
 }
