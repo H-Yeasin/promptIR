@@ -80,6 +80,7 @@ PromptIR contributes these settings:
 | `promptir.openaiModel` | `string` | `gpt-4o` | OpenAI model used for prompt generation. |
 | `promptir.graphify.autoReindex` | `boolean` | `true` | Rebuild Graphify index files incrementally on text document saves. |
 | `promptir.graphify.maxDepth` | `number` | `5` | Maximum number of connected Graphify nodes to include in context. |
+| `promptir.maxContextChars` | `number` | `24000` | Maximum total characters of gathered context (active file, Graphify map, related files, diagnostics) sent to the AI provider per request. Lower this if your provider rejects requests for exceeding its message/token limit. |
 
 ## Privacy
 

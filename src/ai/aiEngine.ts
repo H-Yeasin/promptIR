@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WorkspaceContext } from '../context/contextGatherer';
+import { WorkspaceContext, truncateContext } from '../context/contextGatherer';
 import { describePresetContext, PromptPreset, promptPresets } from '../presets/promptPresets';
 import { getOpenAiApiKey } from '../secrets';
 
@@ -35,7 +35,8 @@ export async function processPromptWithAI(
 		'Use plain text with short sections and numbered steps only when they improve clarity.'
 	].join(' ');
 
-	const contextPayload = [
+	const maxContextChars = config.get<number>('maxContextChars', 24000);
+	const contextPayload = truncateContext([
 		`Raw goal:\n${rawPrompt}`,
 		describePresetContext(context, preset),
 		`Active file: ${context.fileName}`,
@@ -45,7 +46,7 @@ export async function processPromptWithAI(
 		formatGraphifyContext(context),
 		formatRelatedFiles(context),
 		formatDiagnostics(context)
-	].join('\n\n');
+	].join('\n\n'), maxContextChars);
 
 	let optimizedPrompt = '';
 

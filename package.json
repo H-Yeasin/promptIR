@@ -150,6 +150,11 @@
             "type": "string",
             "default": "gpt-4o",
             "description": "The OpenAI model to use (e.g., gpt-4o, gpt-4o-mini)."
+          },
+          "promptir.maxContextChars": {
+            "type": "number",
+            "default": 24000,
+            "description": "Maximum total characters of gathered workspace context (active file, Graphify map, related files, diagnostics) sent to the AI model in a single request. Lower this if you hit a 'message exceeds token limit' style error from the AI provider."
           }
         }
       },
