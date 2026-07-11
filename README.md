@@ -67,7 +67,7 @@ PromptIR can generate prompts using:
 - **GitHub Copilot** through the native VS Code Language Model API.
 - **OpenAI** with your own API key.
 
-To use OpenAI, open VS Code Settings, search for `PromptIR`, set **AI Provider** to `OpenAI`, and enter your API key.
+To use OpenAI, open the PromptIR sidebar (**PromptIR: Open Chatbox**), click the settings icon, set **AI Provider** to `OpenAI`, and enter your API key there. The key is stored using VS Code's Secret Storage, not in plain settings.
 
 ## Settings
 
@@ -76,7 +76,7 @@ PromptIR contributes these settings:
 | Setting Key | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `promptir.aiProvider` | `string` | `Copilot` | Choose `Copilot` or `OpenAI`. |
-| `promptir.openaiApiKey` | `string` | empty | OpenAI API key when using the OpenAI provider. |
+| `promptir.openaiApiKey` | `string` | empty | Legacy field, used only to migrate a previously-saved key into Secret Storage on first launch. Set your key from the PromptIR sidebar settings panel instead; values typed directly into this setting are not used. |
 | `promptir.openaiModel` | `string` | `gpt-4o` | OpenAI model used for prompt generation. |
 | `promptir.graphify.autoReindex` | `boolean` | `true` | Rebuild Graphify index files incrementally on text document saves. |
 | `promptir.graphify.maxDepth` | `number` | `5` | Maximum number of connected Graphify nodes to include in context. |
@@ -84,7 +84,7 @@ PromptIR contributes these settings:
 
 ## Privacy
 
-PromptIR gathers workspace context locally inside VS Code before sending the selected prompt payload to your configured AI provider. If you use Copilot, generation goes through VS Code's language model API. If you use OpenAI, generation uses your configured OpenAI API key.
+PromptIR gathers workspace context locally inside VS Code before sending the selected prompt payload to your configured AI provider. If you use Copilot, generation goes through VS Code's language model API. If you use OpenAI, generation uses your configured OpenAI API key, which PromptIR stores using VS Code's Secret Storage rather than plain settings.
 
 ## Requirements
 
