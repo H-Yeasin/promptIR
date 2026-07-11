@@ -66,6 +66,7 @@ export async function findWorkspaceSummaryFiles(
 			uri,
 			score: scoreSummaryFile(uri, keywords, activeFileName)
 		}))
+		.filter(candidate => candidate.score > 0)
 		.sort((left, right) => right.score - left.score)
 		.slice(0, limit);
 

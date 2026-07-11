@@ -38,8 +38,6 @@ export function registerChatParticipant(): vscode.Disposable {
 			};
 		}
 
-		response.progress('Preparing Graphify relationship index...');
-
 		try {
 			response.progress(`Generating with ${preset.label}...`);
 			response.markdown(`${preset.label} prompt:\n\n`);

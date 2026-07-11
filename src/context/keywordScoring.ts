@@ -22,11 +22,13 @@ export function scoreFile(uri: vscode.Uri, keywords: string[], activeFileName: s
 	let score = uri.fsPath === activeFileName ? 1 : 0;
 
 	for (const keyword of keywords) {
-		if (relativePath.includes(keyword)) {
+		const keywordPattern = new RegExp(`\\b${keyword}\\b`);
+
+		if (keywordPattern.test(relativePath)) {
 			score += 4;
 		}
 
-		if (normalizedPath.includes(keyword)) {
+		if (keywordPattern.test(normalizedPath)) {
 			score += 2;
 		}
 	}
@@ -68,7 +70,7 @@ export function scoreSummaryFile(uri: vscode.Uri, keywords: string[], activeFile
 	}
 
 	for (const keyword of keywords) {
-		if (relativePath.includes(keyword)) {
+		if (new RegExp(`\\b${keyword}\\b`).test(relativePath)) {
 			score += 3;
 		}
 	}

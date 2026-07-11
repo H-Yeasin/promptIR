@@ -103,7 +103,7 @@ function buildDiagnosticAdjacentSnippet(
 	return snippets.join('\n\n---\n\n');
 }
 
-function getDiagnosticPriority(
+export function getDiagnosticPriority(
 	fileName: string,
 	activeFileName: string,
 	relatedFileNames: Set<string>,
@@ -120,7 +120,7 @@ function getDiagnosticPriority(
 	return 1;
 }
 
-function formatSeverity(severity: vscode.DiagnosticSeverity): string {
+export function formatSeverity(severity: vscode.DiagnosticSeverity): string {
 	switch (severity) {
 		case vscode.DiagnosticSeverity.Error:
 			return 'error';
@@ -130,5 +130,7 @@ function formatSeverity(severity: vscode.DiagnosticSeverity): string {
 			return 'info';
 		case vscode.DiagnosticSeverity.Hint:
 			return 'hint';
+		default:
+			return 'unknown';
 	}
 }

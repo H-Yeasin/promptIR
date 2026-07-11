@@ -76,8 +76,12 @@ export function showPromptComposer(
 			}
 		};
 
-		panel.webview.onDidReceiveMessage(async message => {
-			if (message?.type === 'generateFollowUpQuestions' && typeof message.prompt === 'string') {
+		panel.webview.onDidReceiveMessage(async (message: unknown) => {
+			if (!isRecord(message) || typeof message.type !== 'string') {
+				return;
+			}
+
+			if (message.type === 'generateFollowUpQuestions' && typeof message.prompt === 'string') {
 				if (!options.generateFollowUpQuestions) {
 					panel.webview.postMessage({
 						type: 'followUpQuestionsError',
@@ -103,7 +107,7 @@ export function showPromptComposer(
 			}
 
 			if (
-				message?.type === 'refineFromFollowUp'
+				message.type === 'refineFromFollowUp'
 				&& typeof message.originalPrompt === 'string'
 				&& Array.isArray(message.answers)
 			) {
@@ -115,7 +119,7 @@ export function showPromptComposer(
 				return;
 			}
 
-			if (message?.type === 'generate' && typeof message.prompt === 'string' && typeof message.presetId === 'string') {
+			if (message.type === 'generate' && typeof message.prompt === 'string' && typeof message.presetId === 'string') {
 				const preset = getPromptPreset(message.presetId);
 				await generateAndDisplayPrompt({
 					presetId: preset.id,
@@ -124,7 +128,7 @@ export function showPromptComposer(
 				return;
 			}
 
-			if (message?.type === 'copyGeneratedPrompt' && typeof message.prompt === 'string') {
+			if (message.type === 'copyGeneratedPrompt' && typeof message.prompt === 'string') {
 				try {
 					await vscode.env.clipboard.writeText(message.prompt);
 					panel.webview.postMessage({ type: 'generatedPromptCopied' });
@@ -138,13 +142,17 @@ export function showPromptComposer(
 				return;
 			}
 
-			if (message?.type === 'cancel') {
+			if (message.type === 'cancel') {
 				settle(undefined);
 			}
 		});
 
 		panel.onDidDispose(() => settle(undefined));
 	});
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
 }
 
 function isFollowUpAnswer(value: unknown): value is FollowUpAnswer {

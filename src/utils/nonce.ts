@@ -1,10 +1,5 @@
+import { randomBytes } from 'crypto';
+
 export function getNonce(): string {
-	let text = '';
-	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-	for (let index = 0; index < 32; index++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-
-	return text;
+	return randomBytes(16).toString('hex');
 }

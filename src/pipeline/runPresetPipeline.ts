@@ -19,7 +19,10 @@ export async function runPresetPipeline(
 	}
 
 	options.onStatus?.('Preparing Graphify relationship index...');
-	await graphifyDriver.ensureGraphIndex().catch(() => false);
+	await graphifyDriver.ensureGraphIndex().catch((error: unknown) => {
+		console.error('PromptIR: Graphify index preparation failed.', error);
+		return false;
+	});
 	options.onStatus?.('Gathering files, Graphify relationships, and diagnostics...');
 
 	const promptAwareContext = await getPromptAwareWorkspaceContext(

@@ -297,10 +297,10 @@ function runGraphifyCommand(runner: GraphifyRunner, args: string[], cwd: string)
 			windowsHide: true
 		});
 
-		child.stdout.on('data', chunk => {
+		child.stdout.on('data', (chunk: Buffer) => {
 			stdout += chunk.toString('utf8');
 		});
-		child.stderr.on('data', chunk => {
+		child.stderr.on('data', (chunk: Buffer) => {
 			stderr += chunk.toString('utf8');
 		});
 		child.once('error', reject);

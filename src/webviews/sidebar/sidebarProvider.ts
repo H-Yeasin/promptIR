@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getOpenAiApiKey } from '../../secrets';
 import { getSidebarHtml } from './htmlGenerator';
 import { handleGenerate, handleRefineFromFollowUp, handleSaveSettings } from './messageHandlers';
 import type { SidebarMessage } from './messageHandlers';
@@ -6,7 +7,7 @@ import type { SidebarMessage } from './messageHandlers';
 export class PromptIRSidebarProvider implements vscode.WebviewViewProvider {
 	public constructor(private readonly extensionUri: vscode.Uri) {}
 
-	public resolveWebviewView(webviewView: vscode.WebviewView): void {
+	public async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
 		const mediaUri = vscode.Uri.joinPath(this.extensionUri, 'media');
 
 		webviewView.webview.options = {
@@ -16,7 +17,7 @@ export class PromptIRSidebarProvider implements vscode.WebviewViewProvider {
 
 		const config = vscode.workspace.getConfiguration('promptir');
 		const initialAiProvider = config.get<string>('aiProvider', 'Copilot');
-		const initialOpenaiApiKey = config.get<string>('openaiApiKey', '');
+		const initialOpenaiApiKey = await getOpenAiApiKey();
 
 		webviewView.webview.html = getSidebarHtml(webviewView.webview, mediaUri, initialAiProvider, initialOpenaiApiKey);
 

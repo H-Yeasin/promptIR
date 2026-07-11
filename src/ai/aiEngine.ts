@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { WorkspaceContext } from '../context/contextGatherer';
 import { describePresetContext, PromptPreset, promptPresets } from '../presets/promptPresets';
+import { getOpenAiApiKey } from '../secrets';
 
 import { OpenAI } from 'openai';
 
@@ -49,7 +50,7 @@ export async function processPromptWithAI(
 	let optimizedPrompt = '';
 
 	if (aiProvider === 'OpenAI') {
-		const apiKey = config.get<string>('openaiApiKey');
+		const apiKey = await getOpenAiApiKey();
 		const modelName = config.get<string>('openaiModel', 'gpt-4o');
 
 		if (!apiKey) {
@@ -93,7 +94,7 @@ export async function processPromptWithAI(
 	return stripMarkdownFence(optimizedPrompt).trim();
 }
 
-function stripMarkdownFence(text: string): string {
+export function stripMarkdownFence(text: string): string {
 	const trimmed = text.trim();
 	const match = trimmed.match(/^```(?:markdown|md|text)?\s*\r?\n([\s\S]*?)\r?\n```$/i);
 

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getActiveEditorContext } from '../../context/contextGatherer';
 import { runPresetPipeline } from '../../pipeline/runPresetPipeline';
 import { getPromptPreset } from '../../presets/promptPresets';
+import { setOpenAiApiKey } from '../../secrets';
 import { composeFollowUpRefinementPrompt } from '../composer/followUpRefinement';
 import type { FollowUpAnswer } from '../composer/composerTypes';
 
@@ -131,7 +132,7 @@ export async function handleSaveSettings(webviewView: vscode.WebviewView, messag
 
 	const config = vscode.workspace.getConfiguration('promptir');
 	await config.update('aiProvider', message.aiProvider, vscode.ConfigurationTarget.Global);
-	await config.update('openaiApiKey', message.openaiApiKey, vscode.ConfigurationTarget.Global);
+	await setOpenAiApiKey(message.openaiApiKey);
 
 	await webviewView.webview.postMessage({
 		type: 'settingsSaved'

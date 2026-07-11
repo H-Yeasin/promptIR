@@ -327,7 +327,7 @@ export function getComposerHtml(webview: vscode.Webview, fileName: string, media
 <body>
 	<main>
 		<header>
-			<img class="logo" src="${logoUri}" alt="PromptIR logo">
+			<img class="logo" src="${logoUri.toString()}" alt="PromptIR logo">
 			<div class="header-copy">
 				<h1>PromptIR Composer</h1>
 				<div class="context">Using active context from ${escapedFileName}</div>

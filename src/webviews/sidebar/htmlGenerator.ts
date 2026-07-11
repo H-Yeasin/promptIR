@@ -35,7 +35,7 @@ export function getSidebarHtml(webview: vscode.Webview, mediaUri: vscode.Uri, in
 	<div class="shell">
 		<header>
 			<div class="brand">
-				<img class="logo" src="${logoUri}" alt="">
+				<img class="logo" src="${logoUri.toString()}" alt="">
 				<div>
 					<h1>PromptIR</h1>
 					<div class="header-subtitle">Workspace prompt composer</div>

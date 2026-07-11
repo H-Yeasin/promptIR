@@ -4,9 +4,13 @@ import { registerChatParticipant } from './chat/chatParticipant';
 import { registerCopyCommand } from './commands/copyCommand';
 import { registerOptimizeCommand } from './commands/optimizeCommand';
 import { GraphifyDriver } from './graphifyDriver';
+import { initSecrets, migrateOpenAiApiKeyFromSettings } from './secrets';
 import { registerPromptIRSidebar } from './webviews/sidebar/promptirSidebar';
 
 export function activate(context: vscode.ExtensionContext) {
+	initSecrets(context);
+	void migrateOpenAiApiKeyFromSettings();
+
 	const graphifyDriver = new GraphifyDriver();
 	const graphifyStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 	const autoReindex = vscode.workspace.getConfiguration('promptir').get<boolean>('graphify.autoReindex', true);
@@ -90,8 +94,8 @@ function installGraphify(progress: vscode.Progress<{ message?: string; increment
 			windowsHide: true
 		});
 
-		child.stdout.on('data', chunk => reportInstallOutput(progress, chunk));
-		child.stderr.on('data', chunk => reportInstallOutput(progress, chunk));
+		child.stdout.on('data', (chunk: Buffer) => reportInstallOutput(progress, chunk));
+		child.stderr.on('data', (chunk: Buffer) => reportInstallOutput(progress, chunk));
 		child.once('error', reject);
 		child.once('close', code => {
 			if (code === 0) {
