@@ -73,14 +73,14 @@ To use OpenAI, open the PromptIR sidebar (**PromptIR: Open Chatbox**), click the
 
 PromptIR contributes these settings:
 
-| Setting Key | Type | Default | Description |
-| :--- | :---: | :---: | :--- |
-| `promptir.aiProvider` | `string` | `Copilot` | Choose `Copilot` or `OpenAI`. |
-| `promptir.openaiApiKey` | `string` | empty | Legacy field, used only to migrate a previously-saved key into Secret Storage on first launch. Set your key from the PromptIR sidebar settings panel instead; values typed directly into this setting are not used. |
-| `promptir.openaiModel` | `string` | `gpt-4o` | OpenAI model used for prompt generation. |
-| `promptir.graphify.autoReindex` | `boolean` | `true` | Rebuild Graphify index files incrementally on text document saves. |
-| `promptir.graphify.maxDepth` | `number` | `5` | Maximum number of connected Graphify nodes to include in context. |
-| `promptir.maxContextChars` | `number` | `24000` | Maximum total characters of gathered context (active file, Graphify map, related files, diagnostics) sent to the AI provider per request. Lower this if your provider rejects requests for exceeding its message/token limit. |
+| Setting Key                     |   Type    |  Default  | Description                                                                                                                                                                                                                   |
+| :------------------------------ | :-------: | :-------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `promptir.aiProvider`           | `string`  | `Copilot` | Choose `Copilot` or `OpenAI`.                                                                                                                                                                                                 |
+| `promptir.openaiApiKey`         | `string`  |   empty   | Legacy field, used only to migrate a previously-saved key into Secret Storage on first launch. Set your key from the PromptIR sidebar settings panel instead; values typed directly into this setting are not used.           |
+| `promptir.openaiModel`          | `string`  | `gpt-4o`  | OpenAI model used for prompt generation.                                                                                                                                                                                      |
+| `promptir.graphify.autoReindex` | `boolean` |  `true`   | Rebuild Graphify index files incrementally on text document saves.                                                                                                                                                            |
+| `promptir.graphify.maxDepth`    | `number`  |    `5`    | Maximum number of connected Graphify nodes to include in context.                                                                                                                                                             |
+| `promptir.maxContextChars`      | `number`  |  `24000`  | Maximum total characters of gathered context (active file, Graphify map, related files, diagnostics) sent to the AI provider per request. Lower this if your provider rejects requests for exceeding its message/token limit. |
 
 ## Privacy
 
@@ -96,4 +96,4 @@ PromptIR gathers workspace context locally inside VS Code before sending the sel
 
 PromptIR is open source under the MIT License.
 
-Brought to you by [ToolsDigger](http://toolsdigger.com).
+Brought to you by [ToolsDigger](https://toolsdigger.com/promptir).
