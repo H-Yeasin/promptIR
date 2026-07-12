@@ -2,7 +2,7 @@
 
 PromptIR is a context-aware prompt pre-compiler for Visual Studio Code. It turns rough developer intent into agent-ready prompts for tools such as Claude Code, Copilot, Gemini, Codex, and other coding assistants.
 
-PromptIR gathers relevant workspace context from the active editor, optional selection, related files, VS Code diagnostics, and Graphify relationship maps when available. It then asks your selected AI provider to produce a focused prompt with clearer scope, file boundaries, verification steps, and architecture-aware constraints.
+PromptIR gathers relevant workspace context from the active editor, optional selection, related files, VS Code diagnostics, Graphify relationship maps, and grepai semantic search when available. It then asks your selected AI provider to produce a focused prompt with clearer scope, file boundaries, verification steps, and architecture-aware constraints.
 
 The goal is simple: stop paying the context tax.
 
@@ -40,12 +40,14 @@ The PromptIR sidebar is designed for repeated prompt refinement without leaving 
 
 - Choose a preset.
 - Add raw instructions or constraints.
-- Generate a context-aware prompt from editor, file, diagnostics, and Graphify context.
+- Generate a context-aware prompt from editor, file, diagnostics, Graphify, and grepai context.
 - Preview the generated prompt with lightweight Markdown rendering.
 - Edit the generated prompt before copying it.
 - Use follow-up question mode to answer clarifying questions and generate a final prompt.
 
 Most presets copy the generated prompt automatically. Follow-up question mode waits until you answer the questions and create the final prompt.
+
+Click the 🧩 icon in the sidebar header to open the **Context Tools** panel. It explains what Graphify, grepai, and Ollama each add to your context, shows whether they're installed, and gives you a one-click **Install** action for each. PromptIR works fully without any of them; they only make the gathered context richer when present.
 
 ## Graphify Context
 
@@ -54,11 +56,26 @@ PromptIR integrates with Graphify to add relationship-aware repository context w
 When Graphify is available, PromptIR can:
 
 - Build or refresh `graphify-out/graph.json`.
-- Add upstream dependencies and downstream dependents to the prompt context.
-- Include connected files based on the active or prompt-referenced file.
+- Add upstream dependencies and downstream dependents to the prompt context, anchored on the active file, any file paths mentioned in your prompt, and the files grepai's semantic search surfaces as most relevant.
 - Fall back to editor, file, and diagnostics context if Graphify is missing or unavailable.
 
 Graphify context is best-effort. PromptIR continues to work without it.
+
+If your team shares a Graphify index in git, run **PromptIR: Install Team Graph Hooks** from the Command Palette. It installs Graphify's post-commit hook and merge driver so the shared graph stays in sync across commits, and offers to disable `promptir.graphify.autoReindex` to avoid double rebuilds.
+
+## Semantic Search (grepai)
+
+PromptIR can use [grepai](https://github.com/yoanbernabeu/grepai), a local, privacy-first semantic code search CLI, to find relevant files by meaning rather than keyword matching. When grepai is enabled and ready, PromptIR's **Optimize Prompt**, **Security/Performance Pass**, and **Improve UI/UX** presets prefer grepai's line-ranged results over whole-file keyword matches, stretching your `promptir.maxContextChars` budget further.
+
+grepai requires a local embedding provider — [Ollama](https://ollama.com) by default. If grepai or Ollama aren't installed, or the index hasn't been built yet, PromptIR silently falls back to its existing keyword-based file search. Nothing breaks and nothing errors if you skip this entirely.
+
+To set it up:
+
+1. Install grepai and Ollama — see the **Context Tools** panel in the PromptIR sidebar (🧩), which links to each project's official installation guide for your OS.
+2. Run `grepai init` in your workspace root to build its index, and keep `ollama serve` running (or let the Ollama app run in the background).
+3. PromptIR detects readiness automatically; no restart is needed.
+
+The PromptIR status bar shows a `Semantic: Ready / No Index / Off` indicator reflecting grepai's current state.
 
 ## AI Providers
 
@@ -80,6 +97,8 @@ PromptIR contributes these settings:
 | `promptir.openaiModel`          | `string`  | `gpt-4o`  | OpenAI model used for prompt generation.                                                                                                                                                                                      |
 | `promptir.graphify.autoReindex` | `boolean` |  `true`   | Rebuild Graphify index files incrementally on text document saves.                                                                                                                                                            |
 | `promptir.graphify.maxDepth`    | `number`  |    `5`    | Maximum number of connected Graphify nodes to include in context.                                                                                                                                                             |
+| `promptir.grepai.enabled`       | `boolean` |  `true`   | Use grepai for semantic code search when gathering context for prompt-aware presets. Falls back to keyword-based search automatically when grepai is unavailable.                                                            |
+| `promptir.grepai.maxResults`    | `number`  |    `5`    | Maximum number of semantic search hits to request from grepai per prompt (1-10).                                                                                                                                              |
 | `promptir.maxContextChars`      | `number`  |  `24000`  | Maximum total characters of gathered context (active file, Graphify map, related files, diagnostics) sent to the AI provider per request. Lower this if your provider rejects requests for exceeding its message/token limit. |
 
 ## Privacy
@@ -91,6 +110,7 @@ PromptIR gathers workspace context locally inside VS Code before sending the sel
 - Visual Studio Code `^1.120.0`
 - GitHub Copilot access, or an OpenAI API key
 - Optional: Graphify for relationship-aware repository context
+- Optional: [grepai](https://github.com/yoanbernabeu/grepai) and [Ollama](https://ollama.com) for semantic code search
 
 ## License
 
