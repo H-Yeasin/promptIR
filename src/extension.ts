@@ -1,30 +1,39 @@
-import { spawn } from 'child_process';
 import * as vscode from 'vscode';
 import { registerChatParticipant } from './chat/chatParticipant';
 import { registerCopyCommand } from './commands/copyCommand';
+import { registerInstallTeamHooksCommand } from './commands/installTeamHooksCommand';
 import { registerOptimizeCommand } from './commands/optimizeCommand';
 import { GraphifyDriver } from './graphifyDriver';
+import { ensureGraphifyInstalled } from './graphifyInstall';
+import { GrepaiDriver, GrepaiStatus, initGrepaiDriver } from './grepaiDriver';
 import { initSecrets, migrateOpenAiApiKeyFromSettings } from './secrets';
 import { registerPromptIRSidebar } from './webviews/sidebar/promptirSidebar';
 
 export function activate(context: vscode.ExtensionContext) {
 	initSecrets(context);
+	initGrepaiDriver(context);
 	void migrateOpenAiApiKeyFromSettings();
 
 	const graphifyDriver = new GraphifyDriver();
+	const grepaiDriver = new GrepaiDriver();
 	const graphifyStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	const grepaiStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
 	const autoReindex = vscode.workspace.getConfiguration('promptir').get<boolean>('graphify.autoReindex', true);
 
 	context.subscriptions.push(
 		graphifyStatusItem,
+		grepaiStatusItem,
 		registerOptimizeCommand(context.extensionUri),
 		registerCopyCommand(),
 		registerChatParticipant(),
+		registerInstallTeamHooksCommand(graphifyDriver, context),
 		...registerPromptIRSidebar(context.extensionUri)
 	);
 
 	graphifyStatusItem.show();
+	grepaiStatusItem.show();
 	void refreshGraphifyStatus(graphifyDriver, graphifyStatusItem);
+	void refreshGrepaiStatus(grepaiDriver, grepaiStatusItem);
 	void ensureGraphifyInstalled(graphifyDriver).then(() => refreshGraphifyStatus(graphifyDriver, graphifyStatusItem));
 
 	if (autoReindex) {
@@ -38,86 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
-async function ensureGraphifyInstalled(driver: GraphifyDriver): Promise<boolean> {
-	if (await driver.checkInstallation()) {
-		return true;
-	}
-
-	const installAction = 'Install Automatically (via Pip)';
-	const learnMoreAction = 'Learn More';
-	const selection = await vscode.window.showWarningMessage(
-		'PromptIR requires Graphify to build a codebase relationship map. Would you like to install it automatically?',
-		installAction,
-		learnMoreAction
-	);
-
-	if (selection === learnMoreAction) {
-		await vscode.env.openExternal(vscode.Uri.parse('https://github.com/Graphify-Labs/graphify'));
-		return false;
-	}
-
-	if (selection !== installAction) {
-		return false;
-	}
-
-	try {
-		await vscode.window.withProgress(
-			{
-				location: vscode.ProgressLocation.Notification,
-				title: 'Installing codebase graph dependencies...',
-				cancellable: false
-			},
-			async progress => {
-				await installGraphify(progress);
-				progress.report({ message: 'Building initial relationship map...' });
-				await driver.checkInstallation();
-				await driver.buildGraph();
-			}
-		);
-
-		vscode.window.showInformationMessage('Graphify installed. PromptIR is building the initial relationship map.');
-		return true;
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Unknown installation error.';
-		vscode.window.showWarningMessage(`PromptIR could not install Graphify automatically. ${message}`);
-		return false;
-	}
-}
-
-function installGraphify(progress: vscode.Progress<{ message?: string; increment?: number }>): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const child = spawn('pip', ['install', 'graphifyy'], {
-			cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
-			shell: true,
-			stdio: ['ignore', 'pipe', 'pipe'],
-			windowsHide: true
-		});
-
-		child.stdout.on('data', (chunk: Buffer) => reportInstallOutput(progress, chunk));
-		child.stderr.on('data', (chunk: Buffer) => reportInstallOutput(progress, chunk));
-		child.once('error', reject);
-		child.once('close', code => {
-			if (code === 0) {
-				resolve();
-				return;
-			}
-
-			reject(new Error(`pip install graphifyy exited with code ${code}.`));
-		});
-	});
-}
-
-function reportInstallOutput(
-	progress: vscode.Progress<{ message?: string; increment?: number }>,
-	chunk: Buffer
-): void {
-	const message = chunk.toString('utf8').split(/\r?\n/).find(line => line.trim())?.trim();
-
-	if (message) {
-		progress.report({ message });
-	}
-}
 
 async function refreshGraphifyStatus(driver: GraphifyDriver, item: vscode.StatusBarItem): Promise<void> {
 	const installed = await driver.checkInstallation().catch(() => false);
@@ -133,4 +62,38 @@ async function refreshGraphifyStatus(driver: GraphifyDriver, item: vscode.Status
 		: installed
 			? 'Graphify is installed, but graphify-out/graph.json has not been generated yet.'
 		: 'Graphify is not available. PromptIR will fall back to file-level context.';
+}
+
+async function refreshGrepaiStatus(driver: GrepaiDriver, item: vscode.StatusBarItem): Promise<void> {
+	const status = await driver.detectGrepai().catch<GrepaiStatus>(() => 'no-binary');
+
+	item.text = grepaiStatusText(status);
+	item.tooltip = grepaiStatusTooltip(status);
+}
+
+function grepaiStatusText(status: GrepaiStatus): string {
+	switch (status) {
+		case 'ready':
+			return 'Semantic: Ready $(pass-filled)';
+		case 'no-index':
+		case 'provider-down':
+			return 'Semantic: No Index $(warning)';
+		default:
+			return 'Semantic: Off $(circle-slash)';
+	}
+}
+
+function grepaiStatusTooltip(status: GrepaiStatus): string {
+	switch (status) {
+		case 'ready':
+			return 'grepai semantic search is ready for PromptIR.';
+		case 'no-index':
+			return 'grepai is installed, but no .grepai index was found in this workspace. Run "grepai init" to enable semantic search.';
+		case 'provider-down':
+			return 'grepai is installed, but its embedding provider (e.g. Ollama) did not respond. PromptIR will fall back to keyword search.';
+		case 'disabled':
+			return 'Semantic search is disabled in PromptIR settings (promptir.grepai.enabled).';
+		default:
+			return 'grepai is not installed. PromptIR will fall back to keyword-based file search.';
+	}
 }

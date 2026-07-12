@@ -106,6 +106,29 @@ export class GraphifyDriver {
 		await runGraphifyCommand(runner, ['update', '.'], workspaceRoot);
 	}
 
+	async installHooks(): Promise<{ ok: boolean; output: string; error?: string }> {
+		const workspaceRoot = getWorkspaceRoot();
+
+		if (!workspaceRoot) {
+			return { ok: false, output: '', error: 'No workspace folder is open.' };
+		}
+
+		const runner = this.runner ?? await this.resolveRunner();
+
+		if (!runner) {
+			return { ok: false, output: '', error: 'Graphify is not installed.' };
+		}
+
+		this.runner = runner;
+
+		try {
+			const output = await runGraphifyCommandCapture(runner, ['hook', 'install'], workspaceRoot);
+			return { ok: true, output };
+		} catch (error) {
+			return { ok: false, output: '', error: error instanceof Error ? error.message : 'Unknown error installing Graphify hooks.' };
+		}
+	}
+
 	async getRelatedContext(activeFileName: string): Promise<GraphifyRelationshipMap | null> {
 		const workspaceRoot = getWorkspaceRoot();
 
@@ -287,6 +310,10 @@ function canRunGraphify(runner: GraphifyRunner, args: string[]): Promise<boolean
 }
 
 function runGraphifyCommand(runner: GraphifyRunner, args: string[], cwd: string): Promise<void> {
+	return runGraphifyCommandCapture(runner, args, cwd).then(() => undefined);
+}
+
+function runGraphifyCommandCapture(runner: GraphifyRunner, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		let stdout = '';
 		let stderr = '';
@@ -306,7 +333,7 @@ function runGraphifyCommand(runner: GraphifyRunner, args: string[], cwd: string)
 		child.once('error', reject);
 		child.once('close', code => {
 			if (code === 0) {
-				resolve();
+				resolve(stdout);
 				return;
 			}
 

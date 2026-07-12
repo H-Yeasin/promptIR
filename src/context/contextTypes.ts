@@ -19,7 +19,9 @@ export interface WorkspaceContext {
 	languageId: string;
 	selectedText: string;
 	promptReferencedFileName?: string;
+	promptReferencedFileNames?: string[];
 	graphifyContext?: string;
 	relatedFiles?: ContextFile[];
 	diagnostics?: ContextDiagnostic[];
+	semanticHitFiles?: string[];
 }

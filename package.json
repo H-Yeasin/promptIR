@@ -43,6 +43,7 @@
     "onCommand:promptir.optimize",
     "onCommand:promptir.openSidebar",
     "onCommand:promptir.copyToClipboard",
+    "onCommand:promptir.installTeamHooks",
     "onChatParticipant:promptir.chat",
     "onView:promptir.sidebar"
   ],
@@ -68,6 +69,10 @@
           "light": "media/promptir-logo.svg",
           "dark": "media/promptir-logo.svg"
         }
+      },
+      {
+        "command": "promptir.installTeamHooks",
+        "title": "PromptIR: Install Team Graph Hooks"
       }
     ],
     "viewsContainers": {
@@ -170,6 +175,23 @@
             "type": "number",
             "default": 5,
             "description": "Maximum number of connected nodes to pull into context."
+          }
+        }
+      },
+      {
+        "title": "PromptIR Grepai Settings",
+        "properties": {
+          "promptir.grepai.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use grepai for semantic code search when gathering context for prompt-aware presets. Falls back to keyword-based search automatically when grepai is unavailable."
+          },
+          "promptir.grepai.maxResults": {
+            "type": "number",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Maximum number of semantic search hits to request from grepai per prompt."
           }
         }
       }
