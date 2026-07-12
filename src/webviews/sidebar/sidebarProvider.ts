@@ -1,10 +1,25 @@
 import * as vscode from 'vscode';
+import { GraphifyDriver } from '../../graphifyDriver';
+import { GrepaiDriver } from '../../grepaiDriver';
+import { OllamaDriver } from '../../ollamaDriver';
 import { getOpenAiApiKey } from '../../secrets';
 import { getSidebarHtml } from './htmlGenerator';
-import { handleGenerate, handleRefineFromFollowUp, handleSaveSettings } from './messageHandlers';
+import {
+	handleGenerate,
+	handleInstallGraphify,
+	handleInstallGrepai,
+	handleInstallOllama,
+	handleRefineFromFollowUp,
+	handleSaveSettings,
+	postToolStatus
+} from './messageHandlers';
 import type { SidebarMessage } from './messageHandlers';
 
 export class PromptIRSidebarProvider implements vscode.WebviewViewProvider {
+	private readonly graphifyDriver = new GraphifyDriver();
+	private readonly grepaiDriver = new GrepaiDriver();
+	private readonly ollamaDriver = new OllamaDriver();
+
 	public constructor(private readonly extensionUri: vscode.Uri) {}
 
 	public async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
@@ -40,6 +55,26 @@ export class PromptIRSidebarProvider implements vscode.WebviewViewProvider {
 
 			if (message?.type === 'saveSettings') {
 				await handleSaveSettings(webviewView, message);
+				return;
+			}
+
+			if (message?.type === 'requestToolStatus') {
+				await postToolStatus(webviewView, this.graphifyDriver, this.grepaiDriver, this.ollamaDriver);
+				return;
+			}
+
+			if (message?.type === 'installGraphify') {
+				await handleInstallGraphify(webviewView, this.graphifyDriver);
+				return;
+			}
+
+			if (message?.type === 'installGrepai') {
+				await handleInstallGrepai(webviewView, this.grepaiDriver);
+				return;
+			}
+
+			if (message?.type === 'installOllama') {
+				await handleInstallOllama(webviewView, this.ollamaDriver);
 				return;
 			}
 		});

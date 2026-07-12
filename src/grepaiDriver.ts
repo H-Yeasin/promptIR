@@ -1,6 +1,6 @@
-import { execFile, type ExecFileException } from 'child_process';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { execWithTimeout } from './utils/execWithTimeout';
 
 export type GrepaiStatus = 'ready' | 'no-binary' | 'no-index' | 'provider-down' | 'disabled';
 
@@ -20,7 +20,7 @@ interface GrepaiSearchOptions {
 const PROBE_TIMEOUT_MS = 3000;
 const DEFAULT_SEARCH_TIMEOUT_MS = 10000;
 const SETUP_HINT_SHOWN_KEY = 'promptir.grepai.setupHintShown';
-const GREPAI_INSTALL_URL = 'https://github.com/yoanbernabeu/grepai';
+const GREPAI_INSTALL_URL = 'https://yoanbernabeu.github.io/grepai/installation/';
 
 let extensionContext: vscode.ExtensionContext | undefined;
 let cachedStatus: GrepaiStatus | undefined;
@@ -56,6 +56,15 @@ export class GrepaiDriver {
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * grepai has no pip/npm distribution and no single cross-platform install
+	 * command PromptIR can safely auto-run, so "installing" it means sending the
+	 * user to grepai's own official installation guide.
+	 */
+	async openInstallGuide(): Promise<void> {
+		await vscode.env.openExternal(vscode.Uri.parse(GREPAI_INSTALL_URL));
 	}
 }
 
@@ -97,7 +106,7 @@ async function computeGrepaiStatus(): Promise<GrepaiStatus> {
 
 async function isGrepaiOnPath(cwd: string): Promise<boolean> {
 	try {
-		await runGrepaiCommand('grepai', ['--help'], { cwd, timeoutMs: PROBE_TIMEOUT_MS });
+		await execWithTimeout('grepai', ['--help'], { cwd, timeoutMs: PROBE_TIMEOUT_MS });
 		return true;
 	} catch (error) {
 		return (error as NodeJS.ErrnoException).code !== 'ENOENT';
@@ -105,29 +114,7 @@ async function isGrepaiOnPath(cwd: string): Promise<boolean> {
 }
 
 function runGrepaiSearch(query: string, maxResults: number, cwd: string, timeoutMs: number): Promise<string> {
-	return runGrepaiCommand('grepai', ['search', query, '--json', '--compact', '-n', String(maxResults)], { cwd, timeoutMs });
-}
-
-/**
- * Generic, injectable-command process runner (used directly by unit tests to
- * exercise the timeout/kill behavior without depending on a real grepai binary).
- */
-export function runGrepaiCommand(command: string, args: string[], options: { cwd: string; timeoutMs: number }): Promise<string> {
-	return new Promise((resolve, reject) => {
-		execFile(command, args, {
-			cwd: options.cwd,
-			timeout: options.timeoutMs,
-			windowsHide: true,
-			maxBuffer: 5 * 1024 * 1024
-		}, (error: ExecFileException | null, stdout: string) => {
-			if (error) {
-				reject(error instanceof Error ? error : new Error(error.message));
-				return;
-			}
-
-			resolve(stdout);
-		});
-	});
+	return execWithTimeout('grepai', ['search', query, '--json', '--compact', '-n', String(maxResults)], { cwd, timeoutMs });
 }
 
 export function parseGrepaiHits(stdout: string, workspaceRoot: string): GrepaiHit[] | null {
@@ -255,6 +242,7 @@ async function maybeShowSetupHint(): Promise<void> {
 
 	if (selection === learnMoreAction) {
 		await vscode.env.openExternal(vscode.Uri.parse(GREPAI_INSTALL_URL));
+		return;
 	}
 
 	if (selection === dontShowAgainAction) {

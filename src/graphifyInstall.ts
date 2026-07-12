@@ -31,12 +31,7 @@ export async function ensureGraphifyInstalled(driver: GraphifyDriver): Promise<b
 				title: 'Installing codebase graph dependencies...',
 				cancellable: false
 			},
-			async progress => {
-				await installGraphify(progress);
-				progress.report({ message: 'Building initial relationship map...' });
-				await driver.checkInstallation();
-				await driver.buildGraph();
-			}
+			progress => performGraphifyInstall(driver, progress)
 		);
 
 		vscode.window.showInformationMessage('Graphify installed. PromptIR is building the initial relationship map.');
@@ -48,7 +43,38 @@ export async function ensureGraphifyInstalled(driver: GraphifyDriver): Promise<b
 	}
 }
 
-function installGraphify(progress: vscode.Progress<{ message?: string; increment?: number }>): Promise<void> {
+/**
+ * Runs the same install-then-build flow as {@link ensureGraphifyInstalled}, but
+ * without its confirmation dialog. Used for surfaces (like the sidebar CTA) where
+ * clicking "Install" already is the user's confirmation.
+ */
+export async function installGraphifyFromSidebar(
+	driver: GraphifyDriver,
+	progress?: vscode.Progress<{ message?: string; increment?: number }>
+): Promise<{ ok: boolean; error?: string }> {
+	if (await driver.checkInstallation()) {
+		return { ok: true };
+	}
+
+	try {
+		await performGraphifyInstall(driver, progress);
+		return { ok: true };
+	} catch (error) {
+		return { ok: false, error: error instanceof Error ? error.message : 'Unknown installation error.' };
+	}
+}
+
+async function performGraphifyInstall(
+	driver: GraphifyDriver,
+	progress?: vscode.Progress<{ message?: string; increment?: number }>
+): Promise<void> {
+	await installGraphify(progress);
+	progress?.report({ message: 'Building initial relationship map...' });
+	await driver.checkInstallation();
+	await driver.buildGraph();
+}
+
+function installGraphify(progress?: vscode.Progress<{ message?: string; increment?: number }>): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const child = spawn('pip', ['install', 'graphifyy'], {
 			cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
@@ -72,12 +98,12 @@ function installGraphify(progress: vscode.Progress<{ message?: string; increment
 }
 
 function reportInstallOutput(
-	progress: vscode.Progress<{ message?: string; increment?: number }>,
+	progress: vscode.Progress<{ message?: string; increment?: number }> | undefined,
 	chunk: Buffer
 ): void {
 	const message = chunk.toString('utf8').split(/\r?\n/).find(line => line.trim())?.trim();
 
 	if (message) {
-		progress.report({ message });
+		progress?.report({ message });
 	}
 }

@@ -19,6 +19,15 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 		const openaiApiKey = document.getElementById('openaiApiKey');
 		const settingsStatus = document.getElementById('settingsStatus');
 
+		const toggleTools = document.getElementById('toggleTools');
+		const toolsPanel = document.getElementById('toolsPanel');
+		const graphifyStatusText = document.getElementById('graphifyStatusText');
+		const grepaiStatusText = document.getElementById('grepaiStatusText');
+		const ollamaStatusText = document.getElementById('ollamaStatusText');
+		const installGraphifyButton = document.getElementById('installGraphify');
+		const installGrepaiButton = document.getElementById('installGrepai');
+		const installOllamaButton = document.getElementById('installOllama');
+
 		let currentResponse = '';
 		let responseNode;
 		let activePrompt = '';
@@ -359,6 +368,107 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 			settingsPanel.classList.toggle('open');
 		});
 
+		const grepaiStatusLabels = {
+			ready: 'Installed and ready.',
+			'no-index': 'Installed. Run "grepai init" in this workspace to build an index.',
+			'provider-down': 'Installed, but its embedding provider (e.g. Ollama) is not responding.',
+			disabled: 'Disabled in PromptIR settings.',
+			'no-binary': 'Not installed.'
+		};
+		const grepaiStatusClasses = {
+			ready: 'ready',
+			'no-index': 'warning',
+			'provider-down': 'warning',
+			disabled: '',
+			'no-binary': ''
+		};
+		const grepaiInstalledStatuses = ['ready', 'no-index', 'provider-down'];
+		const ollamaStatusLabels = {
+			installed: 'Installed.',
+			'not-installed': 'Not installed.'
+		};
+
+		function setToolStatus(statusEl, buttonEl, text, className, installed) {
+			statusEl.textContent = text;
+			statusEl.className = 'tool-status' + (className ? ' ' + className : '');
+			buttonEl.disabled = installed;
+			buttonEl.textContent = installed ? 'Installed' : 'Install';
+		}
+
+		function applyGraphifyStatus(installed) {
+			setToolStatus(
+				graphifyStatusText,
+				installGraphifyButton,
+				installed ? 'Installed and ready.' : 'Not installed.',
+				installed ? 'ready' : '',
+				installed
+			);
+		}
+
+		function applyGrepaiStatus(status) {
+			setToolStatus(
+				grepaiStatusText,
+				installGrepaiButton,
+				grepaiStatusLabels[status] || 'Not installed.',
+				grepaiStatusClasses[status] || '',
+				grepaiInstalledStatuses.indexOf(status) !== -1
+			);
+		}
+
+		function applyOllamaStatus(status) {
+			setToolStatus(
+				ollamaStatusText,
+				installOllamaButton,
+				ollamaStatusLabels[status] || 'Not installed.',
+				status === 'installed' ? 'ready' : '',
+				status === 'installed'
+			);
+		}
+
+		const toolElements = {
+			graphify: { statusEl: graphifyStatusText, buttonEl: installGraphifyButton },
+			grepai: { statusEl: grepaiStatusText, buttonEl: installGrepaiButton },
+			ollama: { statusEl: ollamaStatusText, buttonEl: installOllamaButton }
+		};
+
+		function applyToolStatus(message) {
+			if (message.tool === 'graphify') {
+				applyGraphifyStatus(message.installed);
+			} else if (message.tool === 'grepai') {
+				applyGrepaiStatus(message.status);
+			} else if (message.tool === 'ollama') {
+				applyOllamaStatus(message.status);
+			}
+		}
+
+		toggleTools.addEventListener('click', () => {
+			toolsPanel.classList.toggle('open');
+		});
+
+		installGraphifyButton.addEventListener('click', () => {
+			installGraphifyButton.disabled = true;
+			installGraphifyButton.textContent = 'Installing...';
+			graphifyStatusText.textContent = 'Installing...';
+			graphifyStatusText.className = 'tool-status';
+			vscode.postMessage({ type: 'installGraphify' });
+		});
+
+		installGrepaiButton.addEventListener('click', () => {
+			installGrepaiButton.disabled = true;
+			installGrepaiButton.textContent = 'Opening...';
+			grepaiStatusText.textContent = 'Opening install guide...';
+			grepaiStatusText.className = 'tool-status';
+			vscode.postMessage({ type: 'installGrepai' });
+		});
+
+		installOllamaButton.addEventListener('click', () => {
+			installOllamaButton.disabled = true;
+			installOllamaButton.textContent = 'Opening...';
+			ollamaStatusText.textContent = 'Opening install guide...';
+			ollamaStatusText.className = 'tool-status';
+			vscode.postMessage({ type: 'installOllama' });
+		});
+
 		aiProvider.addEventListener('change', () => {
 			openaiKeyLabel.style.display = aiProvider.value === 'OpenAI' ? 'flex' : 'none';
 			saveSettings();
@@ -475,7 +585,34 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 						settingsStatus.textContent = '';
 					}
 				}, 2000);
+				return;
+			}
+
+			if (message.type === 'toolStatus') {
+				applyToolStatus(message);
+				return;
+			}
+
+			if (message.type === 'toolInstallStarted') {
+				const elements = toolElements[message.tool];
+				if (elements) {
+					elements.statusEl.textContent = 'Installing...';
+					elements.statusEl.className = 'tool-status';
+					elements.buttonEl.disabled = true;
+					elements.buttonEl.textContent = 'Installing...';
+				}
+				return;
+			}
+
+			if (message.type === 'toolInstallResult') {
+				applyToolStatus(message);
+				const elements = toolElements[message.tool];
+				if (elements && message.message) {
+					elements.statusEl.textContent = message.message;
+					elements.statusEl.className = 'tool-status' + (message.ok ? ' ready' : ' warning');
+				}
 			}
 		});
 
-		updatePresetText();`;
+		updatePresetText();
+		vscode.postMessage({ type: 'requestToolStatus' });`;

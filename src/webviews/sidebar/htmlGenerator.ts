@@ -47,6 +47,7 @@ export function getSidebarHtml(webview: vscode.Webview, mediaUri: vscode.Uri, in
 					<span id="stateLabel">Ready</span>
 				</div>
 				<button class="secondary" id="clearRecent" type="button" title="Clear recent conversation">Clear Recent</button>
+				<button class="icon-button" id="toggleTools" title="Context tools" aria-label="Context tools" style="background: transparent;">🧩</button>
 				<button class="icon-button" id="toggleSettings" title="Settings" aria-label="Settings" style="background: transparent;">⚙️</button>
 			</div>
 		</header>
@@ -64,6 +65,34 @@ export function getSidebarHtml(webview: vscode.Webview, mediaUri: vscode.Uri, in
 				<input type="password" id="openaiApiKey" value="${escapeHtml(initialOpenaiApiKey)}" placeholder="sk-..." />
 			</label>
 			<div class="settings-status" id="settingsStatus"></div>
+		</div>
+
+		<div class="tools-panel" id="toolsPanel">
+			<div class="tools-intro">Optional tools that give PromptIR richer workspace context. PromptIR works fine without them.</div>
+			<div class="tool-row" id="graphifyRow">
+				<div class="tool-info">
+					<div class="tool-name">Graphify</div>
+					<div class="tool-description">Maps upstream/downstream file relationships so generated prompts reference the right dependents and dependencies.</div>
+					<div class="tool-status" id="graphifyStatusText">Checking...</div>
+				</div>
+				<button class="secondary tool-install" id="installGraphify" type="button" disabled>Install</button>
+			</div>
+			<div class="tool-row" id="grepaiRow">
+				<div class="tool-info">
+					<div class="tool-name">grepai</div>
+					<div class="tool-description">Adds semantic code search so PromptIR can find relevant files by meaning, not just keyword matches.</div>
+					<div class="tool-status" id="grepaiStatusText">Checking...</div>
+				</div>
+				<button class="secondary tool-install" id="installGrepai" type="button" disabled>Install</button>
+			</div>
+			<div class="tool-row" id="ollamaRow">
+				<div class="tool-info">
+					<div class="tool-name">Ollama</div>
+					<div class="tool-description">Local embedding provider that powers grepai's semantic search. Required for grepai to actually return results.</div>
+					<div class="tool-status" id="ollamaStatusText">Checking...</div>
+				</div>
+				<button class="secondary tool-install" id="installOllama" type="button" disabled>Install</button>
+			</div>
 		</div>
 
 		<main class="messages" id="messages" aria-live="polite">

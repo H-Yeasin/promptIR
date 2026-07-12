@@ -479,4 +479,65 @@ export const sidebarStyles = /* css */ `		:root {
 			color: var(--vscode-testing-iconPassed);
 			font-size: 11px;
 			min-height: 14px;
+		}
+
+		.tools-panel {
+			display: none;
+			flex-direction: column;
+			gap: 10px;
+			padding: 12px;
+			background: var(--vscode-editorWidget-background);
+			border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+		}
+		.tools-panel.open {
+			display: flex;
+		}
+		.tools-intro {
+			color: var(--vscode-descriptionForeground);
+			font-size: 11px;
+			line-height: 1.35;
+		}
+		.tool-row {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 9px 10px;
+			border: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+			border-radius: 7px;
+			background: var(--vscode-input-background);
+		}
+		.tool-info {
+			display: grid;
+			gap: 3px;
+			min-width: 0;
+			flex: 1 1 auto;
+		}
+		.tool-name {
+			font-size: 12px;
+			font-weight: 600;
+			line-height: 1.35;
+		}
+		.tool-description {
+			color: var(--vscode-descriptionForeground);
+			font-size: 11px;
+			line-height: 1.35;
+			overflow-wrap: anywhere;
+		}
+		.tool-status {
+			font-size: 11px;
+			line-height: 1.35;
+			color: var(--vscode-descriptionForeground);
+		}
+		.tool-status.ready {
+			color: var(--vscode-testing-iconPassed);
+		}
+		.tool-status.warning {
+			color: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-editorWarning-foreground));
+		}
+		.tool-install {
+			width: auto;
+			flex: 0 0 auto;
+			min-height: 26px;
+			padding: 4px 10px;
+			font-size: 11px;
 		}`;

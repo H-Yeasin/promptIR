@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { parseGrepaiHits, runGrepaiCommand } from '../../grepaiDriver';
+import { parseGrepaiHits } from '../../grepaiDriver';
 
 suite('PromptIR Grepai Driver', () => {
 	test('parseGrepaiHits parses a valid compact JSON payload', () => {
@@ -53,18 +53,5 @@ suite('PromptIR Grepai Driver', () => {
 		const hits = parseGrepaiHits('   ', path.join('workspace', 'root'));
 
 		assert.deepStrictEqual(hits, []);
-	});
-
-	test('runGrepaiCommand rejects and kills the process once the timeout elapses', async () => {
-		const start = Date.now();
-
-		await assert.rejects(() => runGrepaiCommand(
-			process.execPath,
-			['-e', 'setTimeout(() => {}, 5000)'],
-			{ cwd: process.cwd(), timeoutMs: 200 }
-		));
-
-		const elapsedMs = Date.now() - start;
-		assert.ok(elapsedMs < 4000, `expected the timeout to cut the process short, but it took ${elapsedMs}ms`);
 	});
 });

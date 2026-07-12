@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
 import { getActiveEditorContext } from '../../context/contextGatherer';
+import { GraphifyDriver } from '../../graphifyDriver';
+import { installGraphifyFromSidebar } from '../../graphifyInstall';
+import { GrepaiDriver, type GrepaiStatus } from '../../grepaiDriver';
+import { OllamaDriver, type OllamaStatus } from '../../ollamaDriver';
 import { runPresetPipeline } from '../../pipeline/runPresetPipeline';
 import { getPromptPreset } from '../../presets/promptPresets';
 import { setOpenAiApiKey } from '../../secrets';
@@ -10,7 +14,11 @@ export type SidebarMessage =
 	| { type: 'generate'; presetId: string; prompt: string }
 	| { type: 'refineFromFollowUp'; originalPrompt: string; answers: FollowUpAnswer[] }
 	| { type: 'copy'; text: string }
-	| { type: 'saveSettings'; aiProvider: string; openaiApiKey: string };
+	| { type: 'saveSettings'; aiProvider: string; openaiApiKey: string }
+	| { type: 'requestToolStatus' }
+	| { type: 'installGraphify' }
+	| { type: 'installGrepai' }
+	| { type: 'installOllama' };
 
 export async function handleGenerate(webviewView: vscode.WebviewView, message: SidebarMessage): Promise<void> {
 		if (message.type !== 'generate') {
@@ -136,5 +144,65 @@ export async function handleSaveSettings(webviewView: vscode.WebviewView, messag
 
 	await webviewView.webview.postMessage({
 		type: 'settingsSaved'
+	});
+}
+
+export async function postToolStatus(
+	webviewView: vscode.WebviewView,
+	graphifyDriver: GraphifyDriver,
+	grepaiDriver: GrepaiDriver,
+	ollamaDriver: OllamaDriver
+): Promise<void> {
+	const graphifyInstalled = await graphifyDriver.checkInstallation().catch(() => false);
+	const grepaiStatus = await grepaiDriver.detectGrepai().catch<GrepaiStatus>(() => 'no-binary');
+	const ollamaStatus = await ollamaDriver.detectOllama().catch<OllamaStatus>(() => 'not-installed');
+
+	await webviewView.webview.postMessage({ type: 'toolStatus', tool: 'graphify', installed: graphifyInstalled });
+	await webviewView.webview.postMessage({ type: 'toolStatus', tool: 'grepai', status: grepaiStatus });
+	await webviewView.webview.postMessage({ type: 'toolStatus', tool: 'ollama', status: ollamaStatus });
+}
+
+export async function handleInstallGraphify(webviewView: vscode.WebviewView, graphifyDriver: GraphifyDriver): Promise<void> {
+	await webviewView.webview.postMessage({ type: 'toolInstallStarted', tool: 'graphify' });
+
+	const result = await installGraphifyFromSidebar(graphifyDriver);
+	const installed = await graphifyDriver.checkInstallation().catch(() => false);
+
+	await webviewView.webview.postMessage({
+		type: 'toolInstallResult',
+		tool: 'graphify',
+		ok: result.ok,
+		installed,
+		message: result.error
+	});
+}
+
+export async function handleInstallGrepai(webviewView: vscode.WebviewView, grepaiDriver: GrepaiDriver): Promise<void> {
+	await webviewView.webview.postMessage({ type: 'toolInstallStarted', tool: 'grepai' });
+
+	await grepaiDriver.openInstallGuide();
+	const status = await grepaiDriver.detectGrepai().catch<GrepaiStatus>(() => 'no-binary');
+
+	await webviewView.webview.postMessage({
+		type: 'toolInstallResult',
+		tool: 'grepai',
+		ok: true,
+		status,
+		message: 'Opened grepai\'s installation guide in your browser.'
+	});
+}
+
+export async function handleInstallOllama(webviewView: vscode.WebviewView, ollamaDriver: OllamaDriver): Promise<void> {
+	await webviewView.webview.postMessage({ type: 'toolInstallStarted', tool: 'ollama' });
+
+	await ollamaDriver.openInstallGuide();
+	const status = await ollamaDriver.detectOllama().catch<OllamaStatus>(() => 'not-installed');
+
+	await webviewView.webview.postMessage({
+		type: 'toolInstallResult',
+		tool: 'ollama',
+		ok: true,
+		status,
+		message: 'Opened Ollama\'s download page in your browser.'
 	});
 }
