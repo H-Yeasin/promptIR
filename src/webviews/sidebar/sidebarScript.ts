@@ -32,12 +32,15 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 		let responseNode;
 		let activePrompt = '';
 
+		const USER_AVATAR_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.2" r="2.7"/><path d="M2.6 13.4c0-2.9 2.4-5 5.4-5s5.4 2.1 5.4 5"/></svg>';
+		const ASSISTANT_AVATAR_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 1.2c.3 2.4 1 4 2.1 5.1 1.1 1.1 2.7 1.8 5.1 2.1-2.4.3-4 1-5.1 2.1-1.1 1.1-1.8 2.7-2.1 5.1-.3-2.4-1-4-2.1-5.1-1.1-1.1-2.7-1.8-5.1-2.1 2.4-.3 4-1 5.1-2.1 1.1-1.1 1.8-2.7 2.1-5.1z"/></svg>';
+
 		function appendMessage(text, className) {
 			const node = document.createElement('div');
 			node.className = 'message' + (className ? ' ' + className : '');
 			const avatar = document.createElement('div');
 			avatar.className = 'avatar';
-			avatar.textContent = className === 'user' ? 'Y' : 'P';
+			avatar.innerHTML = className === 'user' ? USER_AVATAR_SVG : ASSISTANT_AVATAR_SVG;
 			const bubble = document.createElement('div');
 			bubble.className = 'bubble';
 			bubble.textContent = text;
@@ -52,7 +55,7 @@ export const sidebarScript = /* javascript */ `		const vscode = acquireVsCodeApi
 			node.className = 'message assistant thinking';
 			const avatar = document.createElement('div');
 			avatar.className = 'avatar';
-			avatar.textContent = 'P';
+			avatar.innerHTML = ASSISTANT_AVATAR_SVG;
 			const bubble = document.createElement('div');
 			bubble.className = 'bubble';
 			const typing = document.createElement('span');

@@ -97,7 +97,7 @@ export function getSidebarHtml(webview: vscode.Webview, mediaUri: vscode.Uri, in
 
 		<main class="messages" id="messages" aria-live="polite">
 			<div class="message assistant">
-				<div class="avatar">P</div>
+				<div class="avatar"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 1.2c.3 2.4 1 4 2.1 5.1 1.1 1.1 2.7 1.8 5.1 2.1-2.4.3-4 1-5.1 2.1-1.1 1.1-1.8 2.7-2.1 5.1-.3-2.4-1-4-2.1-5.1-1.1-1.1-2.7-1.8-5.1-2.1 2.4-.3 4-1 5.1-2.1 1.1-1.1 1.8-2.7 2.1-5.1z"/></svg></div>
 				<div class="bubble">Ready for the active editor.</div>
 			</div>
 		</main>

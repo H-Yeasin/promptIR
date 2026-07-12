@@ -141,6 +141,11 @@ export const sidebarStyles = /* css */ `		:root {
 			font-weight: 700;
 		}
 
+		.avatar svg {
+			width: 14px;
+			height: 14px;
+		}
+
 		.bubble {
 			min-width: 0;
 			border: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
