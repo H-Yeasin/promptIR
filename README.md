@@ -49,6 +49,8 @@ Most presets copy the generated prompt automatically. Follow-up question mode wa
 
 Click the 🧩 icon in the sidebar header to open the **Context Tools** panel. It explains what Graphify, grepai, and Ollama each add to your context, shows whether they're installed, and gives you a one-click **Install** action for each. PromptIR works fully without any of them; they only make the gathered context richer when present.
 
+![PromptIR Sidebar Workflow](media/guidevideo.gif)
+
 ## Graphify Context
 
 PromptIR integrates with Graphify to add relationship-aware repository context when possible.
